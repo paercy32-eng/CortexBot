@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { createClient } from '@/utils/supabase/client';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
@@ -16,6 +16,15 @@ export default function Register() {
 
   const supabase = createClient();
   const router = useRouter();
+
+  // 🚨 NEW: Auto-fill the referral code from the URL (e.g., ?ref=C81E79)
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const refCode = params.get('ref');
+    if (refCode) {
+      setInviteCode(refCode.toUpperCase());
+    }
+  }, []);
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -130,4 +139,4 @@ export default function Register() {
       </div>
     </div>
   );
-          }
+}
