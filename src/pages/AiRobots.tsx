@@ -1,7 +1,9 @@
+'use client'; // Only needed if you are using Next.js App Router, remove if Pages Router
+
 import { useState, useEffect } from 'react';
-import { ROBOTS } from '../data/robots'; // This imports your 18 robots
-import { createClient } from '@/utils/supabase/client';
-import { useRouter } from 'next/router'; // Use 'next/navigation' if you get an error here
+import { ROBOTS } from '../data/robots'; // Ensure this path points to your data file
+import { createClient } from '@/utils/supabase/client'; // Adjust path if needed
+import { useRouter } from 'next/router'; // Use 'next/navigation' if you get an error
 
 export default function AiRobots() {
   const supabase = createClient();
@@ -151,4 +153,4 @@ export default function AiRobots() {
       </div>
     </div>
   );
-}
+            }
