@@ -28,7 +28,7 @@ export default function Register() {
 
       const generatedCode = Math.random().toString(36).substring(2, 8).toUpperCase();
 
-      // 1. Call our new API route instead of Supabase directly
+      // Call our secure API route
       const res = await fetch('/api/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -45,7 +45,7 @@ export default function Register() {
 
       setSuccessMsg('Account created! Logging you in...');
       
-      // 2. Sign in the user normally
+      // Sign in the user normally
       const { error: signInError } = await supabase.auth.signInWithPassword({
         email: `${phone}@cortexbot.com`,
         password: password,
@@ -71,32 +71,48 @@ export default function Register() {
 
       <form onSubmit={handleRegister} style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
         
+        {/* Country Code Dropdown */}
         <div style={{ position: 'relative' }}>
           <select style={{ width: '100%', padding: '18px', backgroundColor: 'transparent', border: '1px solid #00bfff', borderRadius: '30px', color: 'white', fontSize: '1rem', outline: 'none', appearance: 'none' }}>
             <option style={{ color: 'black' }}>🇺🇬 Uganda (+256)</option>
           </select>
+          <div style={{ position: 'absolute', right: '20px', top: '50%', transform: 'translateY(-50%)', color: '#888', width: '16px', height: '16px', pointerEvents: 'none' }}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+          </div>
         </div>
 
+        {/* Phone Input */}
         <div style={{ position: 'relative' }}>
-          <span style={{ position: 'absolute', left: '15px', top: '50%', transform: 'translateY(-50%)', color: '#888' }}>📱</span>
+          <div style={{ position: 'absolute', left: '15px', top: '50%', transform: 'translateY(-50%)', color: '#888', width: '20px', height: '20px' }}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>
+          </div>
           <input type="tel" placeholder="Phone Number" value={phone} onChange={(e) => setPhone(e.target.value)} required
             style={{ width: '100%', padding: '18px 18px 18px 45px', backgroundColor: 'transparent', border: '1px solid #00bfff', borderRadius: '30px', color: 'white', fontSize: '1rem', outline: 'none' }} />
         </div>
 
+        {/* Password Input */}
         <div style={{ position: 'relative' }}>
-          <span style={{ position: 'absolute', left: '15px', top: '50%', transform: 'translateY(-50%)', color: '#888' }}>🔑</span>
+          <div style={{ position: 'absolute', left: '15px', top: '50%', transform: 'translateY(-50%)', color: '#888', width: '20px', height: '20px' }}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+          </div>
           <input type="password" placeholder="Set Password" value={password} onChange={(e) => setPassword(e.target.value)} required
             style={{ width: '100%', padding: '18px 18px 18px 45px', backgroundColor: 'transparent', border: '1px solid #00bfff', borderRadius: '30px', color: 'white', fontSize: '1rem', outline: 'none' }} />
         </div>
 
+        {/* Confirm Password Input */}
         <div style={{ position: 'relative' }}>
-          <span style={{ position: 'absolute', left: '15px', top: '50%', transform: 'translateY(-50%)', color: '#888' }}>🔑</span>
+          <div style={{ position: 'absolute', left: '15px', top: '50%', transform: 'translateY(-50%)', color: '#888', width: '20px', height: '20px' }}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+          </div>
           <input type="password" placeholder="Confirm Password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} required
             style={{ width: '100%', padding: '18px 18px 18px 45px', backgroundColor: 'transparent', border: '1px solid #00bfff', borderRadius: '30px', color: 'white', fontSize: '1rem', outline: 'none' }} />
         </div>
 
+        {/* Invitation Code Input */}
         <div style={{ position: 'relative' }}>
-          <span style={{ position: 'absolute', left: '15px', top: '50%', transform: 'translateY(-50%)', color: '#888' }}>🔗</span>
+          <div style={{ position: 'absolute', left: '15px', top: '50%', transform: 'translateY(-50%)', color: '#888', width: '20px', height: '20px' }}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+          </div>
           <input type="text" placeholder="Invitation Code (Optional)" value={inviteCode} onChange={(e) => setInviteCode(e.target.value)}
             style={{ width: '100%', padding: '18px 18px 18px 45px', backgroundColor: 'transparent', border: '1px solid #00bfff', borderRadius: '30px', color: 'white', fontSize: '1rem', outline: 'none' }} />
         </div>
@@ -114,4 +130,4 @@ export default function Register() {
       </div>
     </div>
   );
-}
+          }
