@@ -46,31 +46,37 @@ export default function Register() {
       }
 
       // 3. Create the user in Supabase Auth
-      // We use phone@cortexbot.com as the email format for phone login
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: `${phone}@cortexbot.com`,
         password: password,
         options: {
           data: {
             phone: phone,
-            referred_by: referrerId, // Pass the inviter's UUID to the database trigger
-            referral_code: Math.random().toString(36).substring(2, 8).toUpperCase(), // Generate a unique code for the new user
+            referred_by: referrerId,
+            referral_code: Math.random().toString(36).substring(2, 8).toUpperCase(),
+            email_confirm: true, 
           }
         }
       });
 
       if (authError) throw authError;
 
-      setSuccessMsg('Account created successfully! Redirecting to login...');
+      setSuccessMsg('Account created! Logging you in...');
       
-      // Redirect to login after 2 seconds
-      setTimeout(() => {
-        router.push('/login');
-      }, 2000);
+      // 4. Automatically sign the user in immediately after registration
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email: `${phone}@cortexbot.com`,
+        password: password,
+      });
+
+      if (signInError) throw signInError;
+
+      // 5. Redirect straight to the dashboard
+      router.push('/');
+      router.refresh();
       
     } catch (error: any) {
       setErrorMsg(error.message || 'Registration failed.');
-    } finally {
       setLoading(false);
     }
   };
