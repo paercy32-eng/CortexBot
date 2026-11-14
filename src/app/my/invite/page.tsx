@@ -36,7 +36,7 @@ export default function InvitePage() {
       if (profile && profile.referral_code) {
         setReferralCode(profile.referral_code);
         // Build the full link for copying
-        setReferralLink(`https://cortexbot.site/register?ref=${profile.referral_code}`);
+        
       }
 
       // 2. Fetch all users directly referred by this user
@@ -58,7 +58,8 @@ export default function InvitePage() {
         .eq('type', 'COMMISSION');
 
       if (commissions) {
-        const total = commissions.reduce((sum, tx) => sum + Number(tx.amount_usd), 0);
+        const total = commissiconst baseUrl = process.env.NEXT_PUBLIC_APP_URL || window.location.origin;
+setReferralLink(`${baseUrl}/register?ref=${profile.referral_code}`);ons.reduce((sum, tx) => sum + Number(tx.amount_usd), 0);
         setTotalCommission(total);
       }
 
