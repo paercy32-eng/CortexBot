@@ -20,7 +20,6 @@ export default function Login() {
     setErrorMsg('');
 
     try {
-      // Assuming your Supabase auth uses phone@cortexbot.com as the email
       const { error } = await supabase.auth.signInWithPassword({
         email: `${phone}@cortexbot.com`,
         password: password,
@@ -28,7 +27,6 @@ export default function Login() {
 
       if (error) throw error;
 
-      // If successful, go to home page
       router.push('/');
       router.refresh();
       
@@ -53,7 +51,9 @@ export default function Login() {
         
         {/* Phone Input */}
         <div style={{ position: 'relative' }}>
-          <span style={{ position: 'absolute', left: '15px', top: '50%', transform: 'translateY(-50%)', color: '#888' }}>📱</span>
+          <div style={{ position: 'absolute', left: '15px', top: '50%', transform: 'translateY(-50%)', color: '#888', width: '20px', height: '20px' }}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>
+          </div>
           <input 
             type="tel" 
             placeholder="Phone Number" 
@@ -66,7 +66,9 @@ export default function Login() {
 
         {/* Password Input */}
         <div style={{ position: 'relative' }}>
-          <span style={{ position: 'absolute', left: '15px', top: '50%', transform: 'translateY(-50%)', color: '#888' }}>🔑</span>
+          <div style={{ position: 'absolute', left: '15px', top: '50%', transform: 'translateY(-50%)', color: '#888', width: '20px', height: '20px' }}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+          </div>
           <input 
             type="password" 
             placeholder="Login Password" 
