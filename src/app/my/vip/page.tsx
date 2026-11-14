@@ -13,7 +13,6 @@ export default function VipPage() {
   const supabase = createClient();
   const router = useRouter();
 
-  // The VIP Tiers you requested
   const VIP_TIERS = [
     { level: 1, req: 4, reward: 2000 },
     { level: 2, req: 10, reward: 5000 },
@@ -30,27 +29,23 @@ export default function VipPage() {
         return;
       }
 
-      // 1. Fetch direct referrals (Level 1)
+      // 1. Fetch direct referrals and check if they have PURCHASED robots (is_granted = false)
       const { data: referrals } = await supabase
         .from('profiles')
-        .select('total_deposited, product_source')
-        .eq('referred_by', user.id);
+        .select(`
+          id,
+          user_robots!inner(is_granted)
+        `)
+        .eq('referred_by', user.id)
+        .eq('user_robots.is_granted', false); // 🚨 ONLY COUNT REAL PURCHASES
 
-      // 2. Filter to only count ACTIVE users 
-      // (Must have deposited OR purchased a robot, not just signed up)
-      let activeCount = 0;
-      if (referrals) {
-        activeCount = referrals.filter(r => 
-          Number(r.total_deposited || 0) > 0 || r.product_source === 'purchased'
-        ).length;
-      }
+      const activeCount = referrals ? referrals.length : 0;
       setActiveInvites(activeCount);
 
-      // 3. Calculate current VIP Level based on active invites
+      // 2. Calculate current VIP Level
       let earnedVip = 0;
       let dailyReward = 0;
 
-      // Loop backwards to find the highest tier they qualify for
       for (let i = VIP_TIERS.length - 1; i >= 0; i--) {
         if (activeCount >= VIP_TIERS[i].req) {
           earnedVip = VIP_TIERS[i].level;
@@ -61,6 +56,12 @@ export default function VipPage() {
 
       setCurrentVip(earnedVip);
       setCurrentReward(dailyReward);
+
+      // 3. Optionally update their profile badge in the database
+      if (earnedVip > 0) {
+        await supabase.from('profiles').update({ vip_level: earnedVip }).eq('id', user.id);
+      }
+
       setLoading(false);
     };
     fetchVipData();
@@ -150,4 +151,4 @@ export default function VipPage() {
       </div>
     </div>
   );
-                }
+}
