@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { createClient } from '@/utils/supabase/client'; 
-import { StatCard } from '../components/StatCard'; 
+import { StatCard } from '@/components/StatCard'; 
 import { useRouter } from 'next/navigation'; 
 
 export default function Home() {
@@ -12,28 +12,35 @@ export default function Home() {
   const router = useRouter(); 
 
   useEffect(() => {
-    const fetchProfile = async () => {
+    const checkUserAndFetchProfile = async () => {
+      // 1. Check if user is logged in
       const { data: { user } } = await supabase.auth.getUser();
       
-      if (user) {
-        const { data, error } = await supabase
-          .from('profiles')
-          .select('balance_usd, total_deposited, vip_level')
-          .eq('id', user.id)
-          .single();
-          
-        if (data) {
-          setProfile(data);
-        }
+      if (!user) {
+        // If no user, kick them to the login page
+        router.push('/login');
+        return;
       }
+
+      // 2. If logged in, fetch their profile data
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('balance_usd, total_deposited, vip_level')
+        .eq('id', user.id)
+        .single();
+        
+      if (data) {
+        setProfile(data);
+      }
+      
       setLoading(false);
     };
     
-    fetchProfile();
-  }, []);
+    checkUserAndFetchProfile();
+  }, [router, supabase]);
 
   if (loading) {
-    return <div style={{ padding: '20px', color: 'white' }}>Loading dashboard...</div>;
+    return <div style={{ padding: '20px', color: 'white', textAlign: 'center', marginTop: '50px' }}>Loading dashboard...</div>;
   }
 
   return (
@@ -47,7 +54,7 @@ export default function Home() {
         </div>
       </div>
 
-      {/* Quick Actions (Deposit & Withdraw Buttons) */}
+      {/* Quick Actions */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '20px' }}>
         <button 
           onClick={() => router.push('/deposit')}
@@ -77,6 +84,17 @@ export default function Home() {
         <StatCard value="0" label="Team Count" />
         <StatCard value="0.00" label="Team income" />
       </div>
+
+      {/* Logout Button for testing */}
+      <button 
+        onClick={async () => {
+          await supabase.auth.signOut();
+          router.push('/login');
+        }}
+        style={{ marginTop: '30px', width: '100%', padding: '12px', background: 'transparent', border: '1px solid #ff4444', color: '#ff4444', borderRadius: '8px', cursor: 'pointer' }}
+      >
+        Log Out
+      </button>
     </div>
   );
 }
