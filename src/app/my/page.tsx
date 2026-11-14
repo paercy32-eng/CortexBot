@@ -8,6 +8,7 @@ import Link from 'next/link';
 export default function MyProfile() {
   const [phone, setPhone] = useState('');
   const [walletBalance, setWalletBalance] = useState(0);
+  const [vipLevel, setVipLevel] = useState(0); // Added VIP Level state
   const [loading, setLoading] = useState(true);
   
   const supabase = createClient();
@@ -23,13 +24,14 @@ export default function MyProfile() {
 
       const { data: profile } = await supabase
         .from('profiles')
-        .select('phone, balance_usd')
+        .select('phone, balance_usd, vip_level') // Added vip_level
         .eq('id', user.id)
         .single();
 
       if (profile) {
         setPhone(profile.phone || 'No phone');
         setWalletBalance(Number(profile.balance_usd || 0));
+        setVipLevel(Number(profile.vip_level || 0)); // Set VIP Level
       }
       setLoading(false);
     };
@@ -38,7 +40,7 @@ export default function MyProfile() {
 
   if (loading) return <div style={{ color: 'white', padding: '20px', textAlign: 'center' }}>Loading...</div>;
 
-  // Action Grid Data - UPDATED LINKS
+  // Action Grid Data
   const actions = [
     { name: 'Deposit', path: '/deposit', icon: <path d="M12 5v14M5 12l7 7 7-7"/> },
     { name: 'Withdraw', path: '/withdraw', icon: <path d="M12 19V5M5 12l7-7 7 7"/> },
@@ -81,7 +83,10 @@ export default function MyProfile() {
             <div style={{ width: '60px', height: '60px', borderRadius: '50%', border: '2px solid #00bfff', display: 'flex', justifyContent: 'center', alignItems: 'center', background: '#121c2d', marginBottom: '5px' }}>
                <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#00bfff" strokeWidth="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
             </div>
-            <span style={{ fontSize: '0.7rem', background: '#0a0a0a', border: '1px solid #00bfff', padding: '2px 8px', borderRadius: '10px', color: '#00bfff' }}>VIP 0</span>
+            {/* Dynamic VIP Badge */}
+            <span style={{ fontSize: '0.7rem', background: '#0a0a0a', border: '1px solid #00bfff', padding: '2px 8px', borderRadius: '10px', color: '#00bfff' }}>
+              VIP {vipLevel}
+            </span>
           </div>
         </div>
 
@@ -102,7 +107,7 @@ export default function MyProfile() {
             <div style={{ position: 'absolute', inset: 0, backgroundColor: 'rgba(0,0,0,0.6)' }}></div>
             <div style={{ position: 'relative', zIndex: 1 }}>
               <p style={{ margin: '0 0 10px 0', fontSize: '0.9rem', fontFamily: 'Playfair Display, serif' }}>Withdrawable balance</p>
-              <h3 style={{ margin: 0, fontSize: '1.5rem', fontWeight: 'bold', color: '#fff' }}>5,000.00</h3>
+              <h3 style={{ margin: 0, fontSize: '1.5rem', fontWeight: 'bold', color: '#fff' }}>{walletBalance.toLocaleString('en-US', { minimumFractionDigits: 2 })}</h3>
             </div>
           </div>
 
@@ -150,4 +155,4 @@ export default function MyProfile() {
       </div>
     </div>
   );
-      }
+                       }
