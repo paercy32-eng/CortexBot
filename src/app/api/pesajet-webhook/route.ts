@@ -24,7 +24,6 @@ export async function POST(req: Request) {
     const b = Buffer.from(digest);
     
     if (a.length !== b.length || !crypto.timingSafeEqual(a, b)) {
-      console.error('Webhook signature mismatch');
       return NextResponse.json({ error: 'Invalid signature' }, { status: 401 });
     }
 
@@ -32,23 +31,24 @@ export async function POST(req: Request) {
     const { event, reference } = payload;
 
     if (event === 'payment.completed') {
-      const { data: deposit, error: fetchError } = await supabase
+      
+      // 1. Atomic Update: Only process if status is STILL 'pending'
+      const { data: deposit, error: updateError } = await supabase
         .from('pending_deposits')
-        .select('*')
+        .update({ status: 'verified' })
         .eq('txid', reference)
+        .eq('status', 'pending') // 🚨 This prevents double-crediting
+        .select()
         .single();
 
-      if (fetchError || !deposit || deposit.status !== 'pending') {
+      // If no data returned, it means it was already processed by the polling system
+      if (updateError || !deposit) {
         return NextResponse.json({ received: true, message: 'Already processed' });
       }
 
       const depositAmount = Number(deposit.amount_usd);
 
-      await supabase
-        .from('pending_deposits')
-        .update({ status: 'verified' })
-        .eq('id', deposit.id);
-
+      // 2. Fetch user profile
       const { data: profile } = await supabase
         .from('profiles')
         .select('balance_usd, total_deposited, referred_by, raffle_chances')
@@ -57,37 +57,30 @@ export async function POST(req: Request) {
 
       if (!profile) return NextResponse.json({ error: 'User profile not found' }, { status: 404 });
 
-      const newBalance = Number(profile.balance_usd || 0) + depositAmount;
-      const newTotalDeposited = Number(profile.total_deposited || 0) + depositAmount;
-      
+      // 3. Calculate balances and raffle chances
       let newChances = Number(profile.raffle_chances || 0);
       if (depositAmount >= 500000) newChances += 1;
 
-      await supabase
-        .from('profiles')
-        .update({
-          balance_usd: newBalance,
-          total_deposited: newTotalDeposited,
-          raffle_chances: newChances
-        })
-        .eq('id', deposit.user_id);
+      await supabase.from('profiles').update({
+        balance_usd: Number(profile.balance_usd || 0) + depositAmount,
+        total_deposited: Number(profile.total_deposited || 0) + depositAmount,
+        raffle_chances: newChances
+      }).eq('id', deposit.user_id);
 
+      // 4. Give 12% Commission to Level 1 Referrer
       if (profile.referred_by) {
         const commissionAmount = depositAmount * 0.12;
+        
         const { data: referrer } = await supabase
           .from('profiles')
-          .select('balance_usd, team_commission')
+          .select('withdrawable_balance') // Commission goes to Withdrawable
           .eq('id', profile.referred_by)
           .single();
 
         if (referrer) {
-          await supabase
-            .from('profiles')
-            .update({ 
-              balance_usd: Number(referrer.balance_usd || 0) + commissionAmount,
-              team_commission: Number(referrer.team_commission || 0) + commissionAmount
-            })
-            .eq('id', profile.referred_by);
+          await supabase.from('profiles').update({
+            withdrawable_balance: Number(referrer.withdrawable_balance || 0) + commissionAmount
+          }).eq('id', profile.referred_by);
 
           await supabase.from('transactions').insert({
             user_id: profile.referred_by,
@@ -102,7 +95,6 @@ export async function POST(req: Request) {
     return NextResponse.json({ received: true });
 
   } catch (error: any) {
-    console.error('Webhook error:', error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }
