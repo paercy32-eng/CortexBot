@@ -36,7 +36,7 @@ export default function InvitePage() {
       if (profile && profile.referral_code) {
         setReferralCode(profile.referral_code);
         // Build the full link for copying
-        setReferralLink(`${window.location.origin}/register?ref=${profile.referral_code}`);
+        setReferralLink(`https://cortexbot.site/register?ref=${profile.referral_code}`);
       }
 
       // 2. Fetch all users directly referred by this user
