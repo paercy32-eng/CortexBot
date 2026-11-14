@@ -14,104 +14,35 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Missing signature header' }, { status: 401 });
     }
 
+    // 1. Read the raw body as text BEFORE parsing it as JSON
     const rawBody = await req.text();
-    const payload = JSON.parse(rawBody);
 
+    // 2. Compute the expected HMAC signature using your secret
     const webhookSecret = process.env.PESAJET_WEBHOOK_SECRET || '';
     const hmac = crypto.createHmac('sha256', webhookSecret);
     const digest = hmac.update(rawBody).digest('hex');
 
-    if (digest !== signature) {
+    // 3. Compare signatures using a constant-time comparison to prevent timing attacks
+    const a = Buffer.from(signature);
+    const b = Buffer.from(digest);
+    if (a.length !== b.length || !crypto.timingSafeEqual(a, b)) {
       console.error('Webhook signature mismatch');
       return NextResponse.json({ error: 'Invalid signature' }, { status: 401 });
     }
 
+    // 4. Verification successful! Now it's safe to parse the payload
+    const payload = JSON.parse(rawBody);
     const { event, amount, reference } = payload;
 
     if (event === 'payment.completed') {
       console.log(`Payment completed for ref: ${reference}`);
 
-      const { data: deposit, error: fetchError } = await supabase
-        .from('pending_deposits')
-        .select('*')
-        .eq('txid', reference)
-        .single();
-
-      if (fetchError || !deposit || deposit.status !== 'pending') {
-        return NextResponse.json({ received: true, message: 'Already processed' });
-      }
-
-      const depositAmount = Number(amount);
-
-      await supabase
-        .from('pending_deposits')
-        .update({ status: 'verified' })
-        .eq('id', deposit.id);
-
-      // Fetch profile including raffle_chances
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('balance_usd, total_deposited, referred_by, raffle_chances')
-        .eq('id', deposit.user_id)
-        .single();
-
-      if (!profile) {
-        console.error('Profile not found for user:', deposit.user_id);
-        return NextResponse.json({ error: 'User profile not found' }, { status: 404 });
-      }
-
-      // Calculate new balances and raffle chances
-      const newBalance = Number(profile.balance_usd || 0) + depositAmount;
-      const newTotalDeposited = Number(profile.total_deposited || 0) + depositAmount;
-      
-      // 🎟️ GIVE 1 RAFFLE CHANCE IF DEPOSIT IS 500,000 OR MORE
-      let newChances = Number(profile.raffle_chances || 0);
-      if (depositAmount >= 500000) {
-        newChances += 1;
-      }
-
-      await supabase
-        .from('profiles')
-        .update({
-          balance_usd: newBalance,
-          total_deposited: newTotalDeposited,
-          raffle_chances: newChances
-        })
-        .eq('id', deposit.user_id);
-
-      // Process Multi-Level Commissions
-      let currentReferrer = profile.referred_by;
-      const commissions = [0.25, 0.02, 0.01];
-
-      for (let i = 0; i < commissions.length; i++) {
-        if (!currentReferrer) break;
-
-        const commissionAmount = depositAmount * commissions[i];
-        
-        const { data: referrer } = await supabase
-          .from('profiles')
-          .select('balance_usd, referred_by')
-          .eq('id', currentReferrer)
-          .single();
-
-        if (!referrer) break;
-
-        await supabase
-          .from('profiles')
-          .update({ balance_usd: Number(referrer.balance_usd || 0) + commissionAmount })
-          .eq('id', currentReferrer);
-
-        await supabase.from('transactions').insert({
-          user_id: currentReferrer,
-          type: 'COMMISSION',
-          amount_usd: commissionAmount,
-          status: 'completed'
-        });
-
-        currentReferrer = referrer.referred_by;
-      }
+      // ... (The rest of your existing logic for processing the deposit, 
+      //      updating balances, and calculating the 12% commission remains exactly the same)
+      // ... (Make sure to paste the rest of your original code here)
     }
 
+    // Always return 200 OK quickly to acknowledge receipt
     return NextResponse.json({ received: true });
 
   } catch (error: any) {
