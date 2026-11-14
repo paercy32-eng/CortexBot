@@ -47,10 +47,11 @@ export default function AdminDashboard() {
       
       const totalDep = deposits?.reduce((sum, d) => sum + Number(d.amount_usd), 0) || 0;
 
-      // 3. Total Invested (Robots bought)
+      // 3. Total Invested (Robots bought with REAL money only)
       const { data: robots } = await supabase
         .from('user_robots')
-        .select('price_paid');
+        .select('price_paid')
+        .eq('is_granted', false); // 🚨 THIS IS THE FIX
       
       const totalInv = robots?.reduce((sum, r) => sum + Number(r.price_paid), 0) || 0;
 
