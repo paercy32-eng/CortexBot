@@ -11,12 +11,12 @@ export default function AiRobots() {
   
   const [user, setUser] = useState<any>(null);
   
-  // These states are kept to handle the purchase logic, but hidden from the UI
+  // Hidden balance states for purchase logic
   const [depositBalance, setDepositBalance] = useState<number>(0);
   const [withdrawableBalance, setWithdrawableBalance] = useState<number>(0);
   const [hasRobots, setHasRobots] = useState<boolean>(false); 
   
-  const [activeTab, setActiveTab] = useState('All'); // State for filtering
+  const [activeTab, setActiveTab] = useState('All'); 
   const [processingId, setProcessingId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -60,11 +60,12 @@ export default function AiRobots() {
 
     // 1. Check if they have enough in the correct bucket
     if (currentBalanceToUse < robot.price) {
-      alert(`Insufficient ${balanceName}!\n\nYou need ${robot.price.toLocaleString()} UGX in your ${balanceName} to buy this robot.\n\n${isFirstPurchase ? 'Your first purchase must be fully funded by approved deposits.' : 'You cannot use locked AI income or deposit funds for subsequent purchases.'}`);
+      alert(`Insufficient ${balanceName}!\n\nYou need ${robot.price.toLocaleString()} UGX in your ${balanceName} to lock this robot.\n\n${isFirstPurchase ? 'Your first purchase must be fully funded by approved deposits.' : 'You cannot use locked AI income or deposit funds for subsequent purchases.'}`);
       return;
     }
 
-    if (!confirm(`Are you sure you want to buy ${robot.name} for ${robot.price.toLocaleString()} UGX using your ${balanceName}?`)) return;
+    // 🚨 Updated confirmation text
+    if (!confirm(`Are you sure you want to lock in ${robot.name} for ${robot.price.toLocaleString()} UGX using your ${balanceName}?`)) return;
 
     setProcessingId(robot.id);
 
@@ -104,10 +105,11 @@ export default function AiRobots() {
       if (purchaseError) throw purchaseError;
 
       setHasRobots(true); // Unlock subsequent purchases
-      alert(`Successfully purchased ${robot.name}! Your daily income will start accruing.`);
+      // 🚨 Updated success text
+      alert(`Successfully locked in ${robot.name}! Your daily income will start accruing.`);
 
     } catch (error: any) {
-      alert("Error buying robot: " + error.message);
+      alert("Error locking in robot: " + error.message);
     } finally {
       setProcessingId(null);
     }
@@ -184,11 +186,12 @@ export default function AiRobots() {
                 cursor: 'pointer', opacity: processingId === bot.id ? 0.5 : 1
               }}
             >
-              {processingId === bot.id ? 'Processing...' : 'Buy AI robot'}
+              {/* 🚨 Updated Button Text */}
+              {processingId === bot.id ? 'Processing...' : 'Lock in'}
             </button>
           </div>
         ))}
       </div>
     </div>
   );
-}
+              }
