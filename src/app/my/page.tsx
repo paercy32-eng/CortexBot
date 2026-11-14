@@ -60,6 +60,11 @@ export default function MyProfile() {
     }
   };
 
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    router.push('/login');
+  };
+
   if (loading) return <div style={{ color: 'white', padding: '20px', textAlign: 'center' }}>Loading...</div>;
 
   const actions = [
@@ -79,7 +84,7 @@ export default function MyProfile() {
   ];
 
   return (
-    <div style={{ backgroundColor: '#000', minHeight: '100vh', color: 'white', paddingBottom: '20px' }}>
+    <div style={{ backgroundColor: '#000', minHeight: '100vh', color: 'white', paddingBottom: '40px' }}>
       
       <div style={{ padding: '20px 15px' }}>
         
@@ -102,7 +107,6 @@ export default function MyProfile() {
         {/* Action Grid */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '20px 10px' }}>
           {actions.map((action) => {
-            // Handle Download App Button
             if (action.path === 'download_app') {
               return (
                 <div key={action.name} onClick={handleInstallClick} style={{ textDecoration: 'none', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
@@ -114,43 +118,40 @@ export default function MyProfile() {
               );
             }
 
-            // Handle External Links (Join Group)
             if (action.path.startsWith('http')) {
               return (
                 <a key={action.name} href={action.path} target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'none', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
-                  <div style={{ 
-                    width: '60px', height: '60px', borderRadius: '12px', 
-                    border: '1px solid #00bfff', background: '#0a0a0a', 
-                    display: 'flex', justifyContent: 'center', alignItems: 'center',
-                    boxShadow: '0 0 10px rgba(0,191,255,0.1) inset'
-                  }}>
-                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                      {action.icon}
-                    </svg>
+                  <div style={{ width: '60px', height: '60px', borderRadius: '12px', border: '1px solid #00bfff', background: '#0a0a0a', display: 'flex', justifyContent: 'center', alignItems: 'center', boxShadow: '0 0 10px rgba(0,191,255,0.1) inset' }}>
+                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">{action.icon}</svg>
                   </div>
                   <span style={{ fontSize: '0.75rem', color: '#fff', textAlign: 'center' }}>{action.name}</span>
                 </a>
               );
             }
 
-            // Handle normal internal links
             return (
               <Link key={action.name} href={action.path} style={{ textDecoration: 'none', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
-                <div style={{ 
-                  width: '60px', height: '60px', borderRadius: '12px', 
-                  border: '1px solid #00bfff', background: '#0a0a0a', 
-                  display: 'flex', justifyContent: 'center', alignItems: 'center',
-                  boxShadow: '0 0 10px rgba(0,191,255,0.1) inset'
-                }}>
-                  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                    {action.icon}
-                  </svg>
+                <div style={{ width: '60px', height: '60px', borderRadius: '12px', border: '1px solid #00bfff', background: '#0a0a0a', display: 'flex', justifyContent: 'center', alignItems: 'center', boxShadow: '0 0 10px rgba(0,191,255,0.1) inset' }}>
+                  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">{action.icon}</svg>
                 </div>
                 <span style={{ fontSize: '0.75rem', color: '#fff', textAlign: 'center' }}>{action.name}</span>
               </Link>
             );
           })}
         </div>
+
+        {/* Log Out Button */}
+        <button 
+          onClick={handleLogout}
+          style={{ 
+            width: '100%', marginTop: '40px', padding: '15px', 
+            background: 'transparent', border: '1px solid #ff4444', 
+            color: '#ff4444', borderRadius: '12px', fontWeight: 'bold', 
+            fontSize: '1rem', cursor: 'pointer' 
+          }}
+        >
+          Log Out
+        </button>
 
       </div>
     </div>
