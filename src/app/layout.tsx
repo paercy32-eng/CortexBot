@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Inter, Playfair_Display } from "next/font/google";
 import "./globals.css";
-import BottomNav from "@/components/BottomNav"; // Import the nav bar
+import BottomNav from "@/components/BottomNav";
 
 const inter = Inter({ subsets: ["latin"], variable: '--font-inter' });
 const playfair = Playfair_Display({ subsets: ["latin"], variable: '--font-playfair' });
@@ -9,6 +9,7 @@ const playfair = Playfair_Display({ subsets: ["latin"], variable: '--font-playfa
 export const metadata: Metadata = {
   title: "CortexBot",
   description: "Smart AI mining machines for daily income.",
+  manifest: "/manifest.json", // 🚨 Linked the manifest here
 };
 
 export default function RootLayout({
@@ -18,7 +19,6 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      {/* Added paddingBottom so the nav bar doesn't hide the bottom of your pages */}
       <body 
         className={`${inter.variable} ${playfair.variable}`}
         style={{ 
