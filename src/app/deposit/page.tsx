@@ -49,8 +49,9 @@ export default function Deposit() {
     setIsSuccess(false);
 
     const depositAmount = Number(amount);
-    if (!depositAmount || depositAmount < 20000) {
-      setMessage('Minimum deposit is 20,000 UGX.');
+    // 🚨 UPDATED MINIMUM TO 500
+    if (!depositAmount || depositAmount < 500) {
+      setMessage('Minimum deposit is 500 UGX.');
       return;
     }
 
@@ -132,13 +133,13 @@ export default function Deposit() {
             type="number" 
             value={amount}
             onChange={(e) => setAmount(e.target.value)}
-            placeholder="Min 20,000"
-            min="20000"
+            placeholder="Min 500"
+            min="500"
             required
             disabled={verifying}
             style={{ width: '100%', padding: '15px', borderRadius: '8px', border: '1px solid #333', background: '#0a0a0a', color: '#fff', fontSize: '1rem', marginBottom: '5px' }}
           />
-          <p style={{ fontSize: '0.75rem', color: '#888', margin: '0 0 20px 0' }}>Minimum deposit: 20,000 UGX</p>
+          <p style={{ fontSize: '0.75rem', color: '#888', margin: '0 0 20px 0' }}>Minimum deposit: 500 UGX</p>
 
           <label style={{ display: 'block', fontSize: '0.8rem', color: '#888', marginBottom: '8px' }}>Phone Number (MTN or Airtel)</label>
           <input 
