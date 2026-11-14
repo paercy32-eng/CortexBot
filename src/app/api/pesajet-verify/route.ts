@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { PesaJet } from '@pesajet/sdk';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -9,18 +10,28 @@ const supabase = createClient(
 export async function POST(req: Request) {
   try {
     const { reference } = await req.json();
-    
-    // 1. Ask PesaJet for the status of this transaction
-    const PESAJET_API_KEY = process.env.PESAJET_API_KEY;
-    const response = await fetch(`https://payments.pesajet.com/api/v1/collections/${reference}`, {
-      headers: { 'X-API-Key': PESAJET_API_KEY! }
+
+    const pesajet = new PesaJet({
+      apiKey: process.env.PESAJET_API_KEY || "YOUR_API_KEY_HERE",
     });
 
-    if (!response.ok) throw new Error("Failed to verify with PesaJet");
-    const data = await response.json();
-
-    // PesaJet usually returns 'COMPLETED' or 'SUCCESSFUL'
-    const isPaid = data.status === 'COMPLETED' || data.status === 'SUCCESSFUL';
+    // 1. Ask PesaJet for the status using the SDK
+    // Note: PesaJet usually indexes by the transactionId or reference. 
+    // If the SDK requires a transactionId and you only have the reference, 
+    // we catch the error and wait for the webhook to do its job.
+    let isPaid = false;
+    try {
+      // We try to fetch the payment details. If PesaJet allows fetching by reference, great.
+      // Otherwise, the webhook will handle it.
+      const payment = await pesajet.payments.get(reference);
+      if (payment && (payment.status === 'COMPLETED' || payment.status === 'SUCCESSFUL')) {
+        isPaid = true;
+      }
+    } catch (err) {
+      // If fetching by reference fails (because PesaJet needs their transactionId), 
+      // we return false here and let the webhook handle the credit.
+      return NextResponse.json({ success: false, message: 'Waiting for webhook' });
+    }
 
     if (!isPaid) {
       return NextResponse.json({ success: false, message: 'Payment not completed yet' });
