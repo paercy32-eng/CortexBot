@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
-import { ROBOTS } from '../data/robots';
+import { ROBOTS } from '../data/robots'; // This imports your 18 robots
 import { createClient } from '@/utils/supabase/client';
-import { useRouter } from 'next/navigation'; // Use 'next/router' if you are on the older Pages router
+import { useRouter } from 'next/router'; // Use 'next/navigation' if you get an error here
 
 export default function AiRobots() {
   const supabase = createClient();
@@ -151,4 +151,4 @@ export default function AiRobots() {
       </div>
     </div>
   );
-          }
+}
