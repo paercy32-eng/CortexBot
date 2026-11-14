@@ -23,8 +23,8 @@ export async function POST(req: Request) {
       formattedPhone = '+256' + formattedPhone;
     }
 
-    // 3. Detect Provider
-    let provider = 'mtn';
+    // 3. Detect Provider (Explicitly typed to satisfy the SDK)
+    let provider: 'mtn' | 'airtel' = 'mtn'; 
     if (
       formattedPhone.startsWith('+25670') || 
       formattedPhone.startsWith('+25675') || 
