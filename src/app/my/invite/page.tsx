@@ -11,12 +11,10 @@ export default function InvitePage() {
   const [loading, setLoading] = useState(true);
   const [copiedCode, setCopiedCode] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);
+  const [referralLink, setReferralLink] = useState('');
 
   const supabase = createClient();
   const router = useRouter();
-
-  // We use this to build the full link
-  const [referralLink, setReferralLink] = useState('');
 
   useEffect(() => {
     const fetchInviteData = async () => {
@@ -35,8 +33,10 @@ export default function InvitePage() {
 
       if (profile && profile.referral_code) {
         setReferralCode(profile.referral_code);
-        // Build the full link for copying
         
+        // Use the environment variable, or fallback to the current origin
+        const baseUrl = process.env.NEXT_PUBLIC_APP_URL || window.location.origin;
+        setReferralLink(`${baseUrl}/register?ref=${profile.referral_code}`);
       }
 
       // 2. Fetch all users directly referred by this user
@@ -58,8 +58,7 @@ export default function InvitePage() {
         .eq('type', 'COMMISSION');
 
       if (commissions) {
-        const total = commissiconst baseUrl = process.env.NEXT_PUBLIC_APP_URL || window.location.origin;
-setReferralLink(`${baseUrl}/register?ref=${profile.referral_code}`);ons.reduce((sum, tx) => sum + Number(tx.amount_usd), 0);
+        const total = commissions.reduce((sum, tx) => sum + Number(tx.amount_usd), 0);
         setTotalCommission(total);
       }
 
@@ -182,4 +181,4 @@ setReferralLink(`${baseUrl}/register?ref=${profile.referral_code}`);ons.reduce((
       </div>
     </div>
   );
-}
+                       }
