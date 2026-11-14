@@ -1,23 +1,82 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
 :root {
-  --background: #000000;
+  --background: #050505;
   --foreground: #ffffff;
 }
 
 body {
   color: var(--foreground);
   background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-inter), Arial, Helvetica, sans-serif;
   margin: 0;
   padding: 0;
   box-sizing: border-box;
 }
 
-/* This is the glow effect you see on the site */
-.neon-text {
-  color: #00bfff;
-  text-shadow: 0 0 10px rgba(0, 191, 255, 0.5);
+.serif {
+  font-family: var(--font-playfair), serif;
 }
 
-.serif {
-  font-family: 'Playfair Display', serif;
+/* =========================================
+   🟢 CORTEXBOT "MATRIX" THEME OVERRIDES 🟢
+   This safely converts the old Blue/Black 
+   theme to Neon Green/Black without 
+   touching the React files.
+   ========================================= */
+
+/* 1. Neon Blue Text & Borders -> Neon Green */
+[style*="#00bfff"] { 
+  color: #00ff41 !important; 
+  border-color: #00ff41 !important; 
 }
+
+/* 2. Neon Blue Backgrounds (Buttons) -> Neon Green */
+[style*="background: #00bfff"], 
+[style*="backgroundColor: #00bfff"] { 
+  background: #00ff41 !important; 
+  background-color: #00ff41 !important; 
+  color: #000 !important; 
+}
+
+/* 3. Dark Blue Cards -> Dark Green/Black Cards */
+[style*="#121c2d"] { 
+  background-color: #0a1c0a !important; 
+  border-color: #1a3c1a !important; 
+}
+
+/* 4. Pure Black Backgrounds -> Very Dark Green/Black */
+[style*="#000"] { 
+  background-color: #050505 !important; 
+}
+
+/* 5. Dark Gray Borders -> Dark Green Borders */
+[style*="#333"] { 
+  border-color: #1a3c1a !important; 
+}
+
+/* 6. Muted Gray Text -> Muted Green Text */
+[style*="#888"] { 
+  color: #559955 !important; 
+}
+[style*="#666"] { 
+  color: #3a663a !important; 
+}
+
+/* 7. Transparency & Glows (rgba) */
+[style*="rgba(0, 191, 255"], 
+[style*="rgba(0,191,255"] { 
+  background-color: rgba(0, 255, 65, 0.1) !important; 
+  border-color: #00ff41 !important; 
+  box-shadow: 0 0 15px rgba(0, 255, 65, 0.2) !important;
+}
+
+/* 8. Gradients */
+[style*="linear-gradient(135deg, #0a0a0a, #121c2d)"] { 
+  background: linear-gradient(135deg, #050505, #0a1c0a) !important; 
+}
+
+/* 9. Override standard gray borders */
+[style*="border: 1px solid #333"] { border: 1px solid #1a3c1a !important; }
