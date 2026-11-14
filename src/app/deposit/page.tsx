@@ -16,7 +16,6 @@ export default function Deposit() {
   const router = useRouter();
   const pollingRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Clear the interval if the user leaves the page
   useEffect(() => {
     return () => {
       if (pollingRef.current) clearInterval(pollingRef.current);
@@ -63,7 +62,7 @@ export default function Deposit() {
 
       const reference = crypto.randomUUID();
 
-      // 1. Send request to PesaJet API (We send the ORIGINAL amount, the backend adds the fee)
+      // Send request to PesaJet API
       const res = await fetch('/api/pesajet-deposit', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -73,7 +72,7 @@ export default function Deposit() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Failed to initiate payment");
 
-      // 2. Save the pending deposit in Supabase
+      // Save the pending deposit (original amount) to database
       const { error: dbError } = await supabase.from('pending_deposits').insert({
         user_id: user.id,
         txid: reference,
@@ -83,12 +82,11 @@ export default function Deposit() {
 
       if (dbError) throw dbError;
 
-      // 3. Start Polling!
+      // Start Polling
       setMessage('USSD Prompt sent! Please enter your PIN on your phone.');
       setVerifying(true);
       setLoading(false);
 
-      // Check immediately, then every 5 seconds
       checkPaymentStatus(reference);
       pollingRef.current = setInterval(() => checkPaymentStatus(reference), 5000);
 
@@ -97,11 +95,6 @@ export default function Deposit() {
       setLoading(false);
     }
   };
-
-  // Calculate fee and total for display
-  const parsedAmount = Number(amount) || 0;
-  const fee = parsedAmount * 0.035;
-  const totalToPay = parsedAmount + fee;
 
   if (isSuccess) {
     return (
@@ -124,7 +117,6 @@ export default function Deposit() {
   return (
     <div style={{ padding: '20px 15px', backgroundColor: '#000', minHeight: '100vh', color: 'white', display: 'flex', flexDirection: 'column' }}>
       
-      {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', marginBottom: '30px' }}>
         <button onClick={() => router.push('/')} style={{ background: 'none', border: 'none', color: '#00bfff', fontSize: '1.5rem', cursor: 'pointer', marginRight: '15px' }}>
           ←
@@ -132,7 +124,6 @@ export default function Deposit() {
         <h1 style={{ fontFamily: 'Playfair Display, serif', fontSize: '1.5rem', margin: 0 }}>Deposit Funds</h1>
       </div>
 
-      {/* Form Container */}
       <div style={{ background: '#121c2d', border: '1px solid rgba(0, 191, 255, 0.3)', borderRadius: '15px', padding: '20px' }}>
         <form onSubmit={handleDeposit}>
           
@@ -160,24 +151,6 @@ export default function Deposit() {
             style={{ width: '100%', padding: '15px', borderRadius: '8px', border: '1px solid #333', background: '#0a0a0a', color: '#fff', fontSize: '1rem', marginBottom: '20px' }}
           />
 
-          {/* Fee Breakdown */}
-          {parsedAmount > 0 && (
-            <div style={{ backgroundColor: '#0a0a0a', borderRadius: '8px', padding: '15px', marginBottom: '20px', border: '1px dashed #444' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', color: '#888', marginBottom: '8px' }}>
-                <span>Amount to Credit:</span>
-                <span>{parsedAmount.toLocaleString()} UGX</span>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', color: '#ffa500', marginBottom: '8px' }}>
-                <span>Collection Fee (3.5%):</span>
-                <span>+{fee.toLocaleString()} UGX</span>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '1rem', color: '#00bfff', fontWeight: 'bold', borderTop: '1px solid #333', paddingTop: '8px' }}>
-                <span>Total to Pay:</span>
-                <span>{totalToPay.toLocaleString()} UGX</span>
-              </div>
-            </div>
-          )}
-
           <button 
             type="submit" 
             disabled={loading || verifying}
@@ -191,7 +164,6 @@ export default function Deposit() {
           </button>
         </form>
 
-        {/* Status Message */}
         {message && (
           <div style={{ marginTop: '20px', padding: '15px', borderRadius: '8px', background: message.includes('Error') || message.includes('Minimum') ? 'rgba(255, 0, 0, 0.1)' : 'rgba(0, 191, 255, 0.1)', border: `1px solid ${message.includes('Error') || message.includes('Minimum') ? '#ff4444' : '#00bfff'}`, color: message.includes('Error') || message.includes('Minimum') ? '#ff4444' : '#00bfff', fontSize: '0.9rem', textAlign: 'center' }}>
             {verifying && (
@@ -212,4 +184,4 @@ export default function Deposit() {
       `}</style>
     </div>
   );
-                    }
+}
