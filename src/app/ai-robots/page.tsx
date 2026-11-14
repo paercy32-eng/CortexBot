@@ -11,6 +11,8 @@ export default function AiRobots() {
   
   const [user, setUser] = useState<any>(null);
   const [balance, setBalance] = useState<number>(0);
+  const [totalDeposited, setTotalDeposited] = useState<number>(0); // 🚨 NEW: Track real deposits
+  const [hasRobots, setHasRobots] = useState<boolean>(false); // 🚨 NEW: Track if it's their first purchase
   const [processingId, setProcessingId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -22,13 +24,25 @@ export default function AiRobots() {
       }
       setUser(user);
 
+      // 1. Fetch balance and total deposited
       const { data: profile } = await supabase
         .from('profiles')
-        .select('balance_usd')
+        .select('balance_usd, total_deposited')
         .eq('id', user.id)
         .single();
       
-      if (profile) setBalance(Number(profile.balance_usd));
+      if (profile) {
+        setBalance(Number(profile.balance_usd));
+        setTotalDeposited(Number(profile.total_deposited || 0));
+      }
+
+      // 2. Check if the user already owns any robots
+      const { count } = await supabase
+        .from('user_robots')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', user.id);
+
+      setHasRobots((count || 0) > 0);
     };
     fetchUser();
   }, [router, supabase]);
@@ -36,9 +50,19 @@ export default function AiRobots() {
   const handleBuyRobot = async (robot: any) => {
     if (!user) return;
 
+    // 1. Basic Balance Check
     if (balance < robot.price) {
-      alert("Insufficient balance! Please deposit funds first.");
+      alert("Insufficient wallet balance! Please deposit funds first.");
       return;
+    }
+
+    // 🚨 2. FIRST PURCHASE RULE
+    // If they don't have any robots yet, their total deposits must cover the robot price.
+    if (!hasRobots) {
+      if (totalDeposited < robot.price) {
+        alert(`This is your first purchase. It must be fully funded by an approved deposit.\n\nYour total deposits: ${totalDeposited.toLocaleString()} UGX\nRobot price: ${robot.price.toLocaleString()} UGX\n\nYou need to deposit at least ${(robot.price - totalDeposited).toLocaleString()} UGX more to unlock this purchase.`);
+        return;
+      }
     }
 
     if (!confirm(`Are you sure you want to buy ${robot.name} for ${robot.price.toLocaleString()} UGX?`)) return;
@@ -69,6 +93,7 @@ export default function AiRobots() {
       if (purchaseError) throw purchaseError;
 
       setBalance(newBalance);
+      setHasRobots(true); // Update local state so they can make multiple purchases without restriction
       alert(`Successfully purchased ${robot.name}! Your income will start in 24 hours.`);
 
     } catch (error: any) {
@@ -144,4 +169,4 @@ export default function AiRobots() {
       </div>
     </div>
   );
-                }
+}
