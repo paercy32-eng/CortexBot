@@ -7,8 +7,6 @@ import Link from 'next/link';
 
 export default function MyProfile() {
   const [phone, setPhone] = useState('');
-  const [walletBalance, setWalletBalance] = useState(0);
-  const [withdrawableBalance, setWithdrawableBalance] = useState(0);
   const [vipLevel, setVipLevel] = useState(0);
   const [loading, setLoading] = useState(true);
   
@@ -35,14 +33,12 @@ export default function MyProfile() {
 
       const { data: profile } = await supabase
         .from('profiles')
-        .select('phone, balance_usd, withdrawable_balance, vip_level')
+        .select('phone, vip_level')
         .eq('id', user.id)
         .single();
 
       if (profile) {
         setPhone(profile.phone || 'No phone');
-        setWalletBalance(Number(profile.balance_usd || 0) + Number(profile.withdrawable_balance || 0));
-        setWithdrawableBalance(Number(profile.withdrawable_balance || 0));
         setVipLevel(Number(profile.vip_level || 0));
       }
       setLoading(false);
@@ -85,63 +81,26 @@ export default function MyProfile() {
   return (
     <div style={{ backgroundColor: '#000', minHeight: '100vh', color: 'white', paddingBottom: '20px' }}>
       
-      {/* Top Banner */}
-      <div style={{ padding: '15px', borderBottom: '1px solid #333' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', border: '1px solid #00bfff', borderRadius: '10px', padding: '10px 15px', background: '#0a0a0a' }}>
-          <span style={{ fontSize: '0.8rem', color: '#ccc' }}>Show amounts in UGX</span>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '5px', color: '#00bfff', fontWeight: 'bold' }}>
-            <span>UGX</span>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="6 9 12 15 18 9"/></svg>
-          </div>
-        </div>
-      </div>
-
       <div style={{ padding: '20px 15px' }}>
         
         {/* User Info & Avatar */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '20px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '30px', marginTop: '10px' }}>
           <div>
-            <h2 style={{ fontFamily: 'Playfair Display, serif', fontSize: '1.5rem', margin: '0 0 5px 0', color: '#00bfff' }}>Welcome to CortexBot</h2>
+            <h2 style={{ fontFamily: 'Playfair Display, serif', fontSize: '1.8rem', margin: '0 0 5px 0', color: '#00bfff' }}>Welcome to CortexBot</h2>
             <p style={{ margin: 0, fontSize: '1rem', color: '#fff' }}>{phone}</p>
           </div>
           <div style={{ textAlign: 'center' }}>
-            <div style={{ width: '60px', height: '60px', borderRadius: '50%', border: '2px solid #00bfff', display: 'flex', justifyContent: 'center', alignItems: 'center', background: '#121c2d', marginBottom: '5px' }}>
-               <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#00bfff" strokeWidth="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+            <div style={{ width: '70px', height: '70px', borderRadius: '50%', border: '2px solid #00bfff', display: 'flex', justifyContent: 'center', alignItems: 'center', background: '#121c2d', marginBottom: '8px' }}>
+               <svg width="35" height="35" viewBox="0 0 24 24" fill="none" stroke="#00bfff" strokeWidth="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
             </div>
-            <span style={{ fontSize: '0.7rem', background: '#0a0a0a', border: '1px solid #00bfff', padding: '2px 8px', borderRadius: '10px', color: '#00bfff' }}>
+            <span style={{ fontSize: '0.8rem', background: '#0a0a0a', border: '1px solid #00bfff', padding: '3px 10px', borderRadius: '12px', color: '#00bfff', fontWeight: 'bold' }}>
               VIP {vipLevel}
             </span>
           </div>
         </div>
 
-        {/* Balances */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px', marginBottom: '20px' }}>
-          
-          <div style={{ background: 'url("https://images.unsplash.com/photo-1558494949-ef010cbdcc31?q=80&w=400") center/cover', border: '1px solid #00bfff', borderRadius: '12px', padding: '20px 10px', textAlign: 'center', position: 'relative', overflow: 'hidden' }}>
-            <div style={{ position: 'absolute', inset: 0, backgroundColor: 'rgba(0,0,0,0.6)' }}></div>
-            <div style={{ position: 'relative', zIndex: 1 }}>
-              <p style={{ margin: '0 0 10px 0', fontSize: '0.9rem', fontFamily: 'Playfair Display, serif' }}>Wallet</p>
-              <h3 style={{ margin: 0, fontSize: '1.5rem', fontWeight: 'bold' }}>{walletBalance.toLocaleString('en-US', { minimumFractionDigits: 2 })}</h3>
-            </div>
-          </div>
-
-          <div style={{ background: 'url("https://images.unsplash.com/photo-1558494949-ef010cbdcc31?q=80&w=400") center/cover', border: '1px solid #00bfff', borderRadius: '12px', padding: '20px 10px', textAlign: 'center', position: 'relative', overflow: 'hidden' }}>
-            <div style={{ position: 'absolute', inset: 0, backgroundColor: 'rgba(0,0,0,0.6)' }}></div>
-            <div style={{ position: 'relative', zIndex: 1 }}>
-              <p style={{ margin: '0 0 10px 0', fontSize: '0.9rem', fontFamily: 'Playfair Display, serif' }}>Withdrawable balance</p>
-              <h3 style={{ margin: 0, fontSize: '1.5rem', fontWeight: 'bold', color: '#fff' }}>{withdrawableBalance.toLocaleString('en-US', { minimumFractionDigits: 2 })}</h3>
-            </div>
-          </div>
-
-        </div>
-
-        {/* Arrow Divider */}
-        <div style={{ textAlign: 'center', marginBottom: '20px' }}>
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#00bfff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
-        </div>
-
         {/* Action Grid */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '15px 10px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '20px 10px' }}>
           {actions.map((action) => {
             // Handle Download App Button
             if (action.path === 'download_app') {
@@ -150,19 +109,7 @@ export default function MyProfile() {
                   <div style={{ width: '60px', height: '60px', borderRadius: '12px', border: '1px solid #00bfff', background: '#0a0a0a', display: 'flex', justifyContent: 'center', alignItems: 'center', boxShadow: '0 0 10px rgba(0,191,255,0.1) inset' }}>
                     <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">{action.icon}</svg>
                   </div>
-                  <span style={{ fontSize: '0.7rem', color: '#fff', textAlign: 'center' }}>{action.name}</span>
-                </div>
-              );
-            }
-
-            // Handle "Coming Soon" clicks
-            if (action.path === 'coming_soon') {
-              return (
-                <div key={action.name} onClick={() => alert('This feature is coming soon!')} style={{ textDecoration: 'none', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
-                  <div style={{ width: '60px', height: '60px', borderRadius: '12px', border: '1px solid #333', background: '#0a0a0a', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#666" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">{action.icon}</svg>
-                  </div>
-                  <span style={{ fontSize: '0.7rem', color: '#666', textAlign: 'center' }}>{action.name}</span>
+                  <span style={{ fontSize: '0.75rem', color: '#fff', textAlign: 'center' }}>{action.name}</span>
                 </div>
               );
             }
@@ -181,7 +128,7 @@ export default function MyProfile() {
                       {action.icon}
                     </svg>
                   </div>
-                  <span style={{ fontSize: '0.7rem', color: '#fff', textAlign: 'center' }}>{action.name}</span>
+                  <span style={{ fontSize: '0.75rem', color: '#fff', textAlign: 'center' }}>{action.name}</span>
                 </a>
               );
             }
@@ -199,7 +146,7 @@ export default function MyProfile() {
                     {action.icon}
                   </svg>
                 </div>
-                <span style={{ fontSize: '0.7rem', color: '#fff', textAlign: 'center' }}>{action.name}</span>
+                <span style={{ fontSize: '0.75rem', color: '#fff', textAlign: 'center' }}>{action.name}</span>
               </Link>
             );
           })}
@@ -208,4 +155,4 @@ export default function MyProfile() {
       </div>
     </div>
   );
-                                                                                                                         }
+}
