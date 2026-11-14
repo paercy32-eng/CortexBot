@@ -12,10 +12,20 @@ export default function MyProfile() {
   const [vipLevel, setVipLevel] = useState(0);
   const [loading, setLoading] = useState(true);
   
+  // PWA Install state
+  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+
   const supabase = createClient();
   const router = useRouter();
 
   useEffect(() => {
+    // Listen for the install prompt
+    const handleBeforeInstallPrompt = (e: Event) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+    };
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+
     const fetchUserData = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
@@ -31,18 +41,31 @@ export default function MyProfile() {
 
       if (profile) {
         setPhone(profile.phone || 'No phone');
-        setWalletBalance(Number(profile.balance_usd || 0) + Number(profile.withdrawable_balance || 0)); // Showing total
+        setWalletBalance(Number(profile.balance_usd || 0) + Number(profile.withdrawable_balance || 0));
         setWithdrawableBalance(Number(profile.withdrawable_balance || 0));
         setVipLevel(Number(profile.vip_level || 0));
       }
       setLoading(false);
     };
     fetchUserData();
+
+    return () => window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
   }, [router, supabase]);
+
+  const handleInstallClick = async () => {
+    if (deferredPrompt) {
+      deferredPrompt.prompt();
+      const { outcome } = await deferredPrompt.userChoice;
+      if (outcome === 'accepted') {
+        setDeferredPrompt(null);
+      }
+    } else {
+      alert("To install the app, tap the browser menu (three dots) and select 'Add to Home Screen' or 'Install App'.");
+    }
+  };
 
   if (loading) return <div style={{ color: 'white', padding: '20px', textAlign: 'center' }}>Loading...</div>;
 
-  // Action Grid Data
   const actions = [
     { name: 'Deposit', path: '/deposit', icon: <path d="M12 5v14M5 12l7 7 7-7"/> },
     { name: 'Withdraw', path: '/withdraw', icon: <path d="M12 19V5M5 12l7-7 7 7"/> },
@@ -94,7 +117,6 @@ export default function MyProfile() {
         {/* Balances */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px', marginBottom: '20px' }}>
           
-          {/* Wallet Card */}
           <div style={{ background: 'url("https://images.unsplash.com/photo-1558494949-ef010cbdcc31?q=80&w=400") center/cover', border: '1px solid #00bfff', borderRadius: '12px', padding: '20px 10px', textAlign: 'center', position: 'relative', overflow: 'hidden' }}>
             <div style={{ position: 'absolute', inset: 0, backgroundColor: 'rgba(0,0,0,0.6)' }}></div>
             <div style={{ position: 'relative', zIndex: 1 }}>
@@ -103,7 +125,6 @@ export default function MyProfile() {
             </div>
           </div>
 
-          {/* Withdrawable Card */}
           <div style={{ background: 'url("https://images.unsplash.com/photo-1558494949-ef010cbdcc31?q=80&w=400") center/cover', border: '1px solid #00bfff', borderRadius: '12px', padding: '20px 10px', textAlign: 'center', position: 'relative', overflow: 'hidden' }}>
             <div style={{ position: 'absolute', inset: 0, backgroundColor: 'rgba(0,0,0,0.6)' }}></div>
             <div style={{ position: 'relative', zIndex: 1 }}>
@@ -122,6 +143,18 @@ export default function MyProfile() {
         {/* Action Grid */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '15px 10px' }}>
           {actions.map((action) => {
+            // Handle Download App Button
+            if (action.path === 'download_app') {
+              return (
+                <div key={action.name} onClick={handleInstallClick} style={{ textDecoration: 'none', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+                  <div style={{ width: '60px', height: '60px', borderRadius: '12px', border: '1px solid #00bfff', background: '#0a0a0a', display: 'flex', justifyContent: 'center', alignItems: 'center', boxShadow: '0 0 10px rgba(0,191,255,0.1) inset' }}>
+                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">{action.icon}</svg>
+                  </div>
+                  <span style={{ fontSize: '0.7rem', color: '#fff', textAlign: 'center' }}>{action.name}</span>
+                </div>
+              );
+            }
+
             // Handle "Coming Soon" clicks
             if (action.path === 'coming_soon') {
               return (
@@ -175,4 +208,4 @@ export default function MyProfile() {
       </div>
     </div>
   );
-                                   }
+                                                                                                                         }
