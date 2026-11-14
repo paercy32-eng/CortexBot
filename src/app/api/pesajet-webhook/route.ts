@@ -48,26 +48,38 @@ export async function POST(req: Request) {
         .update({ status: 'verified' })
         .eq('id', deposit.id);
 
+      // Fetch profile including raffle_chances
       const { data: profile } = await supabase
         .from('profiles')
-        .select('balance_usd, total_deposited, referred_by')
+        .select('balance_usd, total_deposited, referred_by, raffle_chances')
         .eq('id', deposit.user_id)
         .single();
 
-      // 🚨 THIS IS THE FIX: Check if profile exists to satisfy TypeScript
       if (!profile) {
         console.error('Profile not found for user:', deposit.user_id);
         return NextResponse.json({ error: 'User profile not found' }, { status: 404 });
       }
 
+      // Calculate new balances and raffle chances
+      const newBalance = Number(profile.balance_usd || 0) + depositAmount;
+      const newTotalDeposited = Number(profile.total_deposited || 0) + depositAmount;
+      
+      // 🎟️ GIVE 1 RAFFLE CHANCE IF DEPOSIT IS 500,000 OR MORE
+      let newChances = Number(profile.raffle_chances || 0);
+      if (depositAmount >= 500000) {
+        newChances += 1;
+      }
+
       await supabase
         .from('profiles')
         .update({
-          balance_usd: Number(profile.balance_usd || 0) + depositAmount,
-          total_deposited: Number(profile.total_deposited || 0) + depositAmount
+          balance_usd: newBalance,
+          total_deposited: newTotalDeposited,
+          raffle_chances: newChances
         })
         .eq('id', deposit.user_id);
 
+      // Process Multi-Level Commissions
       let currentReferrer = profile.referred_by;
       const commissions = [0.25, 0.02, 0.01];
 
