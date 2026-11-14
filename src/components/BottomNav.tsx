@@ -6,7 +6,6 @@ import { usePathname } from 'next/navigation';
 export default function BottomNav() {
   const pathname = usePathname();
 
-  // We use SVG paths here so they look perfect on every device
   const navItems = [
     { 
       name: 'Home', 
@@ -35,7 +34,7 @@ export default function BottomNav() {
     },
     { 
       name: 'My', 
-      path: '/deposit', 
+      path: '/my', 
       icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg> 
     },
   ];
@@ -65,9 +64,8 @@ export default function BottomNav() {
             color: isActive ? '#00bfff' : '#666',
             fontSize: '0.65rem',
             gap: '4px',
-            width: '60px' // Keeps them evenly spaced
+            width: '60px'
           }}>
-            {/* Size of the SVG icon */}
             <div style={{ width: '24px', height: '24px', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
               {item.icon}
             </div>
@@ -77,4 +75,4 @@ export default function BottomNav() {
       })}
     </nav>
   );
-              }
+}
