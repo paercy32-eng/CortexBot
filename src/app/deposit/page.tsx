@@ -53,6 +53,7 @@ export default function Deposit() {
       // 5. Success message
       setMessage('USSD Prompt sent! Please check your phone to enter your PIN.');
       setAmount('');
+      setPhone('');
       
     } catch (error: any) {
       setMessage(`Error: ${error.message}`);
