@@ -51,7 +51,7 @@ export default function AdminDashboard() {
       const { data: robots } = await supabase
         .from('user_robots')
         .select('price_paid')
-        .eq('is_granted', false); // 🚨 THIS IS THE FIX
+        .eq('is_granted', false);
       
       const totalInv = robots?.reduce((sum, r) => sum + Number(r.price_paid), 0) || 0;
 
@@ -68,6 +68,7 @@ export default function AdminDashboard() {
     { name: 'Manage Users', path: '/admin/users', icon: '👥', desc: 'Ban, grant robots, edit balances' },
     { name: 'Withdrawals', path: '/admin/withdrawals', icon: '💸', desc: 'Approve or reject user payouts' },
     { name: 'Gift Codes', path: '/admin/giftcodes', icon: '🎁', desc: 'Generate promo codes for users' },
+    { name: 'AI Payouts', path: '/admin/ai-payouts', icon: '🤖', desc: 'Process daily earnings & unlock cycles' },
   ];
 
   return (
@@ -127,4 +128,4 @@ export default function AdminDashboard() {
 
     </div>
   );
-}
+          }
