@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import { createClient } from '@/utils/supabase/client'; 
-import { StatCard } from '@/components/StatCard'; 
 import { useRouter } from 'next/navigation'; 
+import { ROBOTS } from '@/data/robots';
 
 export default function Home() {
   const [profile, setProfile] = useState<any>(null);
@@ -13,26 +13,20 @@ export default function Home() {
 
   useEffect(() => {
     const checkUserAndFetchProfile = async () => {
-      // 1. Check if user is logged in
       const { data: { user } } = await supabase.auth.getUser();
       
       if (!user) {
-        // If no user, kick them to the login page
         router.push('/login');
         return;
       }
 
-      // 2. If logged in, fetch their profile data
-      const { data, error } = await supabase
+      const { data } = await supabase
         .from('profiles')
-        .select('balance_usd, total_deposited, vip_level')
+        .select('full_name, balance_usd, total_deposited, vip_level')
         .eq('id', user.id)
         .single();
         
-      if (data) {
-        setProfile(data);
-      }
-      
+      if (data) setProfile(data);
       setLoading(false);
     };
     
@@ -40,61 +34,188 @@ export default function Home() {
   }, [router, supabase]);
 
   if (loading) {
-    return <div style={{ padding: '20px', color: 'white', textAlign: 'center', marginTop: '50px' }}>Loading dashboard...</div>;
+    return (
+      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', backgroundColor: '#000', color: '#00bfff' }}>
+        <svg className="spinner" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <line x1="12" y1="2" x2="12" y2="6"></line><line x1="12" y1="18" x2="12" y2="22"></line><line x1="4.93" y1="4.93" x2="7.76" y2="7.76"></line><line x1="16.24" y1="16.24" x2="19.07" y2="19.07"></line><line x1="2" y1="12" x2="6" y2="12"></line><line x1="18" y1="12" x2="22" y2="12"></line><line x1="4.93" y1="19.07" x2="7.76" y2="16.24"></line><line x1="16.24" y1="7.76" x2="19.07" y2="4.93"></line>
+        </svg>
+        <style>{`.spinner { animation: spin 1s linear infinite; } @keyframes spin { 100% { transform: rotate(360deg); } }`}</style>
+      </div>
+    );
   }
 
+  // Get top 5 robots for the featured slider
+  const featuredRobots = ROBOTS.slice(0, 5);
+
   return (
-    <div className="page-container" style={{ padding: '20px 15px', backgroundColor: '#000', minHeight: '100vh', color: 'white' }}>
+    <div style={{ backgroundColor: '#000', minHeight: '100vh', color: 'white', paddingBottom: '80px', overflowX: 'hidden' }}>
       
-      {/* Banner */}
-      <div className="banner" style={{ height: '180px', borderRadius: '15px', backgroundImage: 'url("https://images.unsplash.com/photo-1558494949-ef010cbdcc31?q=80&w=800")', backgroundSize: 'cover', position: 'relative', marginBottom: '20px' }}>
-        <div style={{ position: 'absolute', bottom: '15px', left: '15px', zIndex: 2 }}>
-          <h3 className="neon-text" style={{ margin: 0, color: '#00bfff', fontFamily: 'Playfair Display, serif' }}>Cortex Neural Matrix</h3>
-          <p style={{ margin: 0, fontSize: '0.8rem', color: '#ccc' }}>Smart AI mining machines for daily income.</p>
+      {/* Live Ticker */}
+      <div style={{ backgroundColor: '#0a0a0a', borderBottom: '1px solid #333', padding: '8px 0', overflow: 'hidden', whiteSpace: 'nowrap' }}>
+        <div style={{ display: 'inline-block', animation: 'ticker 15s linear infinite' }}>
+          <span style={{ color: '#00bfff', fontSize: '0.75rem', fontWeight: 'bold' }}>🔥 User 1234 just won a T-800! </span>
+          <span style={{ color: '#888', margin: '0 15px' }}>|</span>
+          <span style={{ color: '#00ff00', fontSize: '0.75rem', fontWeight: 'bold' }}>💰 User 5678 deposited 500,000 UGX! </span>
+          <span style={{ color: '#888', margin: '0 15px' }}>|</span>
+          <span style={{ color: '#00bfff', fontSize: '0.75rem', fontWeight: 'bold' }}>🤖 User 9101 bought Optimus Prime! </span>
         </div>
       </div>
 
-      {/* Quick Actions */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '20px' }}>
-        <button 
-          onClick={() => router.push('/deposit')}
-          style={{ background: '#00bfff', color: '#000', padding: '12px', borderRadius: '8px', fontWeight: 'bold', border: 'none', cursor: 'pointer', fontSize: '1rem' }}
-        >
-          Deposit Funds
-        </button>
-        <button 
-          onClick={() => router.push('/withdraw')}
-          style={{ background: '#121c2d', color: '#00bfff', padding: '12px', borderRadius: '8px', fontWeight: 'bold', border: '1px solid #00bfff', cursor: 'pointer', fontSize: '1rem' }}
-        >
-          Withdraw
-        </button>
-      </div>
+      <div style={{ padding: '20px 15px' }}>
+        
+        {/* Header */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '25px' }}>
+          <div>
+            <p style={{ margin: 0, fontSize: '0.8rem', color: '#888' }}>Welcome back,</p>
+            <h2 style={{ margin: 0, fontSize: '1.4rem', fontFamily: 'Playfair Display, serif', color: '#fff' }}>
+              {profile?.full_name ? profile.full_name.split(' ')[0] : 'User'}
+            </h2>
+          </div>
+          <div style={{ width: '40px', height: '40px', borderRadius: '50%', backgroundColor: '#121c2d', border: '1px solid #00bfff', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#00bfff" strokeWidth="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
+          </div>
+        </div>
 
-      {/* 2x2 Grid */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '12px' }}>
-        <StatCard value={profile?.total_deposited?.toLocaleString() || "0.00"} label="Deposit details" />
-        <StatCard value={profile?.balance_usd?.toLocaleString() || "0.00"} label="Withdraw details" />
-        <StatCard value="0.00" label="AI Income" />
-        <StatCard value="0.00" label="Today's earnings" />
-      </div>
+        {/* HERO BALANCE CARD */}
+        <div style={{ 
+          background: 'linear-gradient(135deg, rgba(0, 191, 255, 0.1), rgba(0, 0, 0, 0.8))',
+          border: '1px solid rgba(0, 191, 255, 0.4)',
+          borderRadius: '20px',
+          padding: '30px 20px',
+          textAlign: 'center',
+          position: 'relative',
+          boxShadow: '0 10px 30px rgba(0, 191, 255, 0.15)',
+          marginBottom: '25px',
+          overflow: 'hidden'
+        }}>
+          {/* Decorative background glow */}
+          <div style={{ position: 'absolute', top: '-50px', left: '50%', transform: 'translateX(-50%)', width: '150px', height: '150px', background: '#00bfff', filter: 'blur(70px)', opacity: 0.3 }}></div>
+          
+          <p style={{ margin: '0 0 10px 0', fontSize: '0.9rem', color: '#ccc', letterSpacing: '2px', textTransform: 'uppercase' }}>Total Wallet Balance</p>
+          <h1 style={{ margin: 0, fontSize: '3.5rem', fontFamily: 'Playfair Display, serif', color: '#fff', textShadow: '0 0 20px rgba(255,255,255,0.3)' }}>
+            <span style={{ fontSize: '1.5rem', color: '#00bfff' }}>UGX</span> {Number(profile?.balance_usd || 0).toLocaleString()}
+          </h1>
+          
+          <div style={{ marginTop: '20px', display: 'inline-block', backgroundColor: 'rgba(0, 255, 0, 0.1)', border: '1px solid rgba(0, 255, 0, 0.3)', padding: '5px 15px', borderRadius: '20px' }}>
+            <span style={{ fontSize: '0.8rem', color: '#00ff00' }}>VIP Level: {profile?.vip_level || 0}</span>
+          </div>
+        </div>
 
-      {/* 3x1 Grid */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px' }}>
-        <StatCard value="0" label="Invite Count" />
-        <StatCard value="0" label="Team Count" />
-        <StatCard value="0.00" label="Team income" />
-      </div>
+        {/* Quick Actions */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px', marginBottom: '30px' }}>
+          <button 
+            onClick={() => router.push('/deposit')}
+            style={{ 
+              background: '#00bfff', color: '#000', padding: '16px', borderRadius: '12px', 
+              fontWeight: 'bold', fontSize: '1rem', border: 'none', cursor: 'pointer',
+              boxShadow: '0 4px 15px rgba(0, 191, 255, 0.4)', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '8px'
+            }}
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M12 5v14M5 12l7 7 7-7"/></svg>
+            Deposit
+          </button>
+          <button 
+            onClick={() => router.push('/withdraw')}
+            style={{ 
+              background: 'rgba(18, 28, 45, 0.8)', color: '#00bfff', padding: '16px', borderRadius: '12px', 
+              fontWeight: 'bold', fontSize: '1rem', border: '1px solid #00bfff', cursor: 'pointer',
+              display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '8px'
+            }}
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+            Withdraw
+          </button>
+        </div>
 
-      {/* Logout Button for testing */}
-      <button 
-        onClick={async () => {
-          await supabase.auth.signOut();
-          router.push('/login');
-        }}
-        style={{ marginTop: '30px', width: '100%', padding: '12px', background: 'transparent', border: '1px solid #ff4444', color: '#ff4444', borderRadius: '8px', cursor: 'pointer' }}
-      >
-        Log Out
-      </button>
+        {/* Stats Grid */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '30px' }}>
+          
+          <div style={{ backgroundColor: '#0a0a0a', border: '1px solid #222', borderRadius: '12px', padding: '15px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px' }}>
+              <div style={{ width: '25px', height: '25px', borderRadius: '50%', backgroundColor: 'rgba(0, 191, 255, 0.1)', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#00bfff" strokeWidth="2"><rect x="3" y="11" width="18" height="10" rx="2"/><circle cx="12" cy="5" r="2"/><path d="M12 7v4"/></svg>
+              </div>
+              <span style={{ fontSize: '0.75rem', color: '#888' }}>AI Income</span>
+            </div>
+            <h3 style={{ margin: 0, fontSize: '1.2rem', color: '#fff' }}>0.00</h3>
+          </div>
+
+          <div style={{ backgroundColor: '#0a0a0a', border: '1px solid #222', borderRadius: '12px', padding: '15px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px' }}>
+              <div style={{ width: '25px', height: '25px', borderRadius: '50%', backgroundColor: 'rgba(0, 255, 0, 0.1)', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#00ff00" strokeWidth="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+              </div>
+              <span style={{ fontSize: '0.75rem', color: '#888' }}>Today's Earnings</span>
+            </div>
+            <h3 style={{ margin: 0, fontSize: '1.2rem', color: '#fff' }}>0.00</h3>
+          </div>
+
+          <div style={{ backgroundColor: '#0a0a0a', border: '1px solid #222', borderRadius: '12px', padding: '15px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px' }}>
+              <div style={{ width: '25px', height: '25px', borderRadius: '50%', backgroundColor: 'rgba(255, 165, 0, 0.1)', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#ffa500" strokeWidth="2"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></svg>
+              </div>
+              <span style={{ fontSize: '0.75rem', color: '#888' }}>Invites</span>
+            </div>
+            <h3 style={{ margin: 0, fontSize: '1.2rem', color: '#fff' }}>0</h3>
+          </div>
+
+          <div style={{ backgroundColor: '#0a0a0a', border: '1px solid #222', borderRadius: '12px', padding: '15px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px' }}>
+              <div style={{ width: '25px', height: '25px', borderRadius: '50%', backgroundColor: 'rgba(255, 0, 255, 0.1)', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#ff00ff" strokeWidth="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+              </div>
+              <span style={{ fontSize: '0.75rem', color: '#888' }}>Team Size</span>
+            </div>
+            <h3 style={{ margin: 0, fontSize: '1.2rem', color: '#fff' }}>0</h3>
+          </div>
+
+        </div>
+
+        {/* Featured Robots Slider */}
+        <div style={{ marginBottom: '20px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
+            <h3 style={{ margin: 0, fontSize: '1.2rem', fontFamily: 'Playfair Display, serif', color: '#fff' }}>Trending Robots</h3>
+            <span onClick={() => router.push('/ai-robots')} style={{ fontSize: '0.8rem', color: '#00bfff', cursor: 'pointer' }}>See All</span>
+          </div>
+          
+          <div style={{ display: 'flex', gap: '15px', overflowX: 'auto', paddingBottom: '15px', scrollbarWidth: 'none' }}>
+            {featuredRobots.map((bot) => (
+              <div 
+                key={bot.id} 
+                onClick={() => router.push('/ai-robots')}
+                style={{ 
+                  minWidth: '140px', 
+                  background: 'linear-gradient(180deg, #121c2d 0%, #0a0a0a 100%)', 
+                  border: '1px solid #333', 
+                  borderRadius: '12px', 
+                  padding: '10px',
+                  cursor: 'pointer'
+                }}
+              >
+                <div style={{ height: '80px', borderRadius: '8px', overflow: 'hidden', marginBottom: '10px' }}>
+                  <img src={bot.image} alt={bot.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                </div>
+                <h4 style={{ margin: '0 0 5px 0', fontSize: '0.9rem', color: '#fff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{bot.name}</h4>
+                <p style={{ margin: 0, fontSize: '0.7rem', color: '#00bfff', fontWeight: 'bold' }}>{bot.price.toLocaleString()} UGX</p>
+              </div>
+            ))}
+          </div>
+        </div>
+
+      </div>
+      
+      {/* Animation Styles */}
+      <style>{`
+        @keyframes ticker {
+          0% { transform: translateX(100%); }
+          100% { transform: translateX(-100%); }
+        }
+        /* Hide scrollbar for Chrome, Safari and Opera */
+        div::-webkit-scrollbar {
+          display: none;
+        }
+      `}</style>
     </div>
   );
-}
+          }
