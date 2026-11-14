@@ -54,7 +54,6 @@ export default function Register() {
             phone: phone,
             referred_by: referrerId,
             referral_code: Math.random().toString(36).substring(2, 8).toUpperCase(),
-            email_confirm: true, 
           }
         }
       });
@@ -190,4 +189,4 @@ export default function Register() {
       </div>
     </div>
   );
-}
+      }
