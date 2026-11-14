@@ -69,6 +69,7 @@ export default function AdminDashboard() {
     { name: 'Withdrawals', path: '/admin/withdrawals', icon: '💸', desc: 'Approve or reject user payouts' },
     { name: 'Gift Codes', path: '/admin/giftcodes', icon: '🎁', desc: 'Generate promo codes for users' },
     { name: 'AI Payouts', path: '/admin/ai-payouts', icon: '🤖', desc: 'Process daily earnings & unlock cycles' },
+    { name: 'Manage Robots', path: '/admin/robots', icon: '⚙️', desc: 'Edit prices, daily income & cycles' }, // 🚨 NEW ITEM ADDED HERE
   ];
 
   return (
@@ -128,4 +129,4 @@ export default function AdminDashboard() {
 
     </div>
   );
-          }
+        }
