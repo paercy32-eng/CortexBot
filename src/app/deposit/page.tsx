@@ -34,7 +34,6 @@ export default function Deposit() {
       const data = await res.json();
       
       if (data.success) {
-        // Success! Stop polling and show success screen
         if (pollingRef.current) clearInterval(pollingRef.current);
         setVerifying(false);
         setIsSuccess(true);
@@ -50,7 +49,6 @@ export default function Deposit() {
     setMessage('');
     setIsSuccess(false);
 
-    // 🚨 CHECK MINIMUM DEPOSIT
     const depositAmount = Number(amount);
     if (!depositAmount || depositAmount < 20000) {
       setMessage('Minimum deposit is 20,000 UGX.');
@@ -65,7 +63,7 @@ export default function Deposit() {
 
       const reference = crypto.randomUUID();
 
-      // 1. Send request to PesaJet API
+      // 1. Send request to PesaJet API (We send the ORIGINAL amount, the backend adds the fee)
       const res = await fetch('/api/pesajet-deposit', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -99,6 +97,11 @@ export default function Deposit() {
       setLoading(false);
     }
   };
+
+  // Calculate fee and total for display
+  const parsedAmount = Number(amount) || 0;
+  const fee = parsedAmount * 0.035;
+  const totalToPay = parsedAmount + fee;
 
   if (isSuccess) {
     return (
@@ -157,6 +160,24 @@ export default function Deposit() {
             style={{ width: '100%', padding: '15px', borderRadius: '8px', border: '1px solid #333', background: '#0a0a0a', color: '#fff', fontSize: '1rem', marginBottom: '20px' }}
           />
 
+          {/* Fee Breakdown */}
+          {parsedAmount > 0 && (
+            <div style={{ backgroundColor: '#0a0a0a', borderRadius: '8px', padding: '15px', marginBottom: '20px', border: '1px dashed #444' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', color: '#888', marginBottom: '8px' }}>
+                <span>Amount to Credit:</span>
+                <span>{parsedAmount.toLocaleString()} UGX</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', color: '#ffa500', marginBottom: '8px' }}>
+                <span>Collection Fee (3.5%):</span>
+                <span>+{fee.toLocaleString()} UGX</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '1rem', color: '#00bfff', fontWeight: 'bold', borderTop: '1px solid #333', paddingTop: '8px' }}>
+                <span>Total to Pay:</span>
+                <span>{totalToPay.toLocaleString()} UGX</span>
+              </div>
+            </div>
+          )}
+
           <button 
             type="submit" 
             disabled={loading || verifying}
@@ -191,4 +212,4 @@ export default function Deposit() {
       `}</style>
     </div>
   );
-              }
+                    }
