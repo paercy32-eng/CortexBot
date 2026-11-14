@@ -8,6 +8,7 @@ export default function Withdraw() {
   const [amount, setAmount] = useState('');
   const [phone, setPhone] = useState('');
   const [balance, setBalance] = useState(0);
+  const [hasActiveRobot, setHasActiveRobot] = useState(false);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
   const [isSuccess, setIsSuccess] = useState(false);
@@ -16,7 +17,7 @@ export default function Withdraw() {
   const supabase = createClient();
   const router = useRouter();
 
-  // Fetch the user's current balance and bound account details
+  // Fetch the user's current balance, bound account details, and check for active robots
   useEffect(() => {
     const fetchUserData = async () => {
       const { data: { user } } = await supabase.auth.getUser();
@@ -25,6 +26,7 @@ export default function Withdraw() {
         return;
       }
 
+      // 1. Fetch Profile
       const { data: profile } = await supabase
         .from('profiles')
         .select('balance_usd, bound_name, bound_phone')
@@ -35,6 +37,16 @@ export default function Withdraw() {
         setBalance(Number(profile.balance_usd || 0));
         if (profile.bound_phone) setPhone(profile.bound_phone);
       }
+
+      // 2. Check for Active Robots
+      const { count } = await supabase
+        .from('user_robots')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', user.id)
+        .eq('status', 'active');
+
+      setHasActiveRobot((count || 0) > 0);
+
       setFetching(false);
     };
     fetchUserData();
@@ -44,6 +56,11 @@ export default function Withdraw() {
     e.preventDefault();
     setMessage('');
     setIsSuccess(false);
+
+    if (!hasActiveRobot) {
+      setMessage('You must have an active robot to withdraw funds.');
+      return;
+    }
 
     const withdrawAmount = Number(amount);
     
@@ -73,7 +90,6 @@ export default function Withdraw() {
       if (profileError) throw profileError;
 
       // 3. Insert the withdrawal request into the database
-      // We insert the gross amount requested. The admin will see the 15% fee.
       const { error: reqError } = await supabase.from('withdrawal_requests').insert({
         user_id: user.id,
         amount_usd: withdrawAmount,
@@ -120,6 +136,18 @@ export default function Withdraw() {
         <h2 style={{ margin: '5px 0 0 0', fontSize: '2rem', color: '#00bfff' }}>{balance.toLocaleString()} UGX</h2>
       </div>
 
+      {/* 🚨 Withdrawal Locked Warning */}
+      {!hasActiveRobot && (
+        <div style={{ background: 'rgba(255, 0, 0, 0.1)', border: '1px solid #ff4444', borderRadius: '12px', padding: '15px', marginBottom: '20px', textAlign: 'center' }}>
+          <p style={{ margin: 0, color: '#ff4444', fontSize: '0.9rem', fontWeight: 'bold' }}>
+            ⚠️ Withdrawal Locked
+          </p>
+          <p style={{ margin: '5px 0 0 0', color: '#ccc', fontSize: '0.8rem' }}>
+            You must purchase an active robot to enable withdrawals.
+          </p>
+        </div>
+      )}
+
       {isSuccess ? (
         <div style={{ background: 'rgba(0, 255, 0, 0.1)', border: '1px solid #00ff00', borderRadius: '12px', padding: '30px 20px', textAlign: 'center' }}>
           <svg width="50" height="50" viewBox="0 0 24 24" fill="none" stroke="#00ff00" strokeWidth="2" style={{ margin: '0 auto 15px auto' }}><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
@@ -130,7 +158,7 @@ export default function Withdraw() {
           </button>
         </div>
       ) : (
-        <div style={{ background: '#121c2d', border: '1px solid #333', borderRadius: '15px', padding: '20px' }}>
+        <div style={{ background: '#121c2d', border: '1px solid #333', borderRadius: '15px', padding: '20px', opacity: hasActiveRobot ? 1 : 0.5 }}>
           <form onSubmit={handleWithdraw}>
             
             <label style={{ display: 'block', fontSize: '0.8rem', color: '#888', marginBottom: '8px' }}>Amount (UGX)</label>
@@ -140,6 +168,7 @@ export default function Withdraw() {
               onChange={(e) => setAmount(e.target.value)}
               placeholder="Min 10,000"
               required
+              disabled={!hasActiveRobot}
               style={{ width: '100%', padding: '15px', borderRadius: '8px', border: '1px solid #333', background: '#0a0a0a', color: '#fff', fontSize: '1rem', marginBottom: '5px' }}
             />
             <p style={{ fontSize: '0.75rem', color: '#888', margin: '0 0 15px 0' }}>Minimum withdrawal: 10,000 UGX</p>
@@ -151,6 +180,7 @@ export default function Withdraw() {
               onChange={(e) => setPhone(e.target.value)}
               placeholder="e.g. 0771234567"
               required
+              disabled={!hasActiveRobot}
               style={{ width: '100%', padding: '15px', borderRadius: '8px', border: '1px solid #333', background: '#0a0a0a', color: '#fff', fontSize: '1rem', marginBottom: '20px' }}
             />
 
@@ -174,11 +204,12 @@ export default function Withdraw() {
 
             <button 
               type="submit" 
-              disabled={loading}
+              disabled={loading || !hasActiveRobot}
               style={{ 
                 width: '100%', padding: '15px', borderRadius: '8px', border: 'none', 
                 background: '#00bfff', color: '#000', fontWeight: 'bold', fontSize: '1rem', 
-                cursor: loading ? 'not-allowed' : 'pointer', opacity: loading ? 0.6 : 1
+                cursor: (loading || !hasActiveRobot) ? 'not-allowed' : 'pointer', 
+                opacity: (loading || !hasActiveRobot) ? 0.5 : 1
               }}
             >
               {loading ? 'Processing...' : 'Confirm Withdrawal'}
@@ -195,4 +226,4 @@ export default function Withdraw() {
       )}
     </div>
   );
-                           }
+  }
