@@ -1,17 +1,11 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
-import { PesaJet } from '@pesajet/sdk'; // Import the official SDK
+import crypto from 'crypto';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
-
-// Initialize the SDK with your secret
-const pesajet = new PesaJet({
-  apiKey: process.env.PESAJET_API_KEY || '',
-  webhookSecret: process.env.PESAJET_WEBHOOK_SECRET || '',
-});
 
 export async function POST(req: Request) {
   try {
@@ -20,24 +14,24 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Missing signature header' }, { status: 401 });
     }
 
-    // Read the raw body as text BEFORE parsing
     const rawBody = await req.text();
+    const webhookSecret = process.env.PESAJET_WEBHOOK_SECRET || '';
 
-    // Use the SDK's built-in verify method. It's designed to handle the raw body correctly.
-    const isValid = pesajet.webhooks.verify(rawBody, signature);
+    const hmac = crypto.createHmac('sha256', webhookSecret);
+    const digest = hmac.update(rawBody).digest('hex');
 
-    if (!isValid) {
+    const a = Buffer.from(signature);
+    const b = Buffer.from(digest);
+    
+    if (a.length !== b.length || !crypto.timingSafeEqual(a, b)) {
       console.error('Webhook signature mismatch');
       return NextResponse.json({ error: 'Invalid signature' }, { status: 401 });
     }
 
-    // --- If we reach here, the signature is valid ---
     const payload = JSON.parse(rawBody);
     const { event, reference } = payload;
 
     if (event === 'payment.completed') {
-      console.log(`Payment completed for ref: ${reference}`);
-
       const { data: deposit, error: fetchError } = await supabase
         .from('pending_deposits')
         .select('*')
@@ -48,7 +42,6 @@ export async function POST(req: Request) {
         return NextResponse.json({ received: true, message: 'Already processed' });
       }
 
-      // Use the amount the user requested, not the PesaJet fee-inflated amount
       const depositAmount = Number(deposit.amount_usd);
 
       await supabase
@@ -79,7 +72,6 @@ export async function POST(req: Request) {
         })
         .eq('id', deposit.user_id);
 
-      // 12% Level 1 Commission
       if (profile.referred_by) {
         const commissionAmount = depositAmount * 0.12;
         const { data: referrer } = await supabase
@@ -113,4 +105,4 @@ export async function POST(req: Request) {
     console.error('Webhook error:', error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
-      }
+}
