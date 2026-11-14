@@ -15,21 +15,19 @@ export async function POST(req: Request) {
       apiKey: process.env.PESAJET_API_KEY || "YOUR_API_KEY_HERE",
     });
 
-    // 1. Ask PesaJet for the status using the SDK
-    // Note: PesaJet usually indexes by the transactionId or reference. 
-    // If the SDK requires a transactionId and you only have the reference, 
-    // we catch the error and wait for the webhook to do its job.
+    // 1. Ask PesaJet for the status
     let isPaid = false;
     try {
-      // We try to fetch the payment details. If PesaJet allows fetching by reference, great.
-      // Otherwise, the webhook will handle it.
       const payment = await pesajet.payments.get(reference);
-      if (payment && (payment.status === 'COMPLETED' || payment.status === 'SUCCESSFUL')) {
+      
+      // Cast status to string to bypass the missing "COMPLETED" type in the SDK
+      const currentStatus = String(payment?.status);
+      
+      if (currentStatus === 'COMPLETED' || currentStatus === 'SUCCESSFUL') {
         isPaid = true;
       }
     } catch (err) {
-      // If fetching by reference fails (because PesaJet needs their transactionId), 
-      // we return false here and let the webhook handle the credit.
+      // If fetching by reference fails, we return false and let the webhook handle the credit.
       return NextResponse.json({ success: false, message: 'Waiting for webhook' });
     }
 
@@ -97,4 +95,4 @@ export async function POST(req: Request) {
   } catch (error: any) {
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }
-}
+      }
