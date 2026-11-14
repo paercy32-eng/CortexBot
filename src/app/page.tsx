@@ -3,13 +3,13 @@
 import { useEffect, useState } from 'react';
 import { createClient } from '@/utils/supabase/client'; 
 import { StatCard } from '../components/StatCard'; 
-import { useRouter } from 'next/navigation'; // Added for navigation
+import { useRouter } from 'next/navigation'; 
 
 export default function Home() {
   const [profile, setProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const supabase = createClient();
-  const router = useRouter(); // Initialize router
+  const router = useRouter(); 
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -37,12 +37,12 @@ export default function Home() {
   }
 
   return (
-    <div className="page-container" style={{ padding: '20px 15px' }}>
+    <div className="page-container" style={{ padding: '20px 15px', backgroundColor: '#000', minHeight: '100vh', color: 'white' }}>
       
       {/* Banner */}
       <div className="banner" style={{ height: '180px', borderRadius: '15px', backgroundImage: 'url("https://images.unsplash.com/photo-1558494949-ef010cbdcc31?q=80&w=800")', backgroundSize: 'cover', position: 'relative', marginBottom: '20px' }}>
         <div style={{ position: 'absolute', bottom: '15px', left: '15px', zIndex: 2 }}>
-          <h3 className="neon-text" style={{ margin: 0 }}>Cortex Neural Matrix</h3>
+          <h3 className="neon-text" style={{ margin: 0, color: '#00bfff', fontFamily: 'Playfair Display, serif' }}>Cortex Neural Matrix</h3>
           <p style={{ margin: 0, fontSize: '0.8rem', color: '#ccc' }}>Smart AI mining machines for daily income.</p>
         </div>
       </div>
@@ -56,7 +56,7 @@ export default function Home() {
           Deposit Funds
         </button>
         <button 
-          onClick={() => alert('Withdraw page coming next!')}
+          onClick={() => router.push('/withdraw')}
           style={{ background: '#121c2d', color: '#00bfff', padding: '12px', borderRadius: '8px', fontWeight: 'bold', border: '1px solid #00bfff', cursor: 'pointer', fontSize: '1rem' }}
         >
           Withdraw
