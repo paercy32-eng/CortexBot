@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { ROBOTS } from '@/data/robots'; 
 import { createClient } from '@/utils/supabase/client';
 import { useRouter } from 'next/navigation';
 
@@ -10,6 +9,7 @@ export default function AiRobots() {
   const router = useRouter();
   
   const [user, setUser] = useState<any>(null);
+  const [robots, setRobots] = useState<any[]>([]); // State for fetched robots
   
   // Hidden balance states for purchase logic
   const [depositBalance, setDepositBalance] = useState<number>(0);
@@ -18,9 +18,10 @@ export default function AiRobots() {
   
   const [activeTab, setActiveTab] = useState('All'); 
   const [processingId, setProcessingId] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchUser = async () => {
+    const fetchData = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
         router.push('/login');
@@ -28,7 +29,7 @@ export default function AiRobots() {
       }
       setUser(user);
 
-      // Fetch balances silently for the purchase logic
+      // 1. Fetch balances silently for the purchase logic
       const { data: profile } = await supabase
         .from('profiles')
         .select('balance_usd, withdrawable_balance')
@@ -40,15 +41,27 @@ export default function AiRobots() {
         setWithdrawableBalance(Number(profile.withdrawable_balance || 0));
       }
 
-      // Check if the user already owns any robots
+      // 2. Check if the user already owns any robots
       const { count } = await supabase
         .from('user_robots')
         .select('*', { count: 'exact', head: true })
         .eq('user_id', user.id);
 
       setHasRobots((count || 0) > 0);
+
+      // 3. Fetch the live robots from the database
+      const { data: dbRobots } = await supabase
+        .from('robots')
+        .select('*')
+        .order('price', { ascending: true });
+
+      if (dbRobots) {
+        setRobots(dbRobots);
+      }
+      
+      setLoading(false);
     };
-    fetchUser();
+    fetchData();
   }, [router, supabase]);
 
   const handleBuyRobot = async (robot: any) => {
@@ -64,7 +77,6 @@ export default function AiRobots() {
       return;
     }
 
-    // 🚨 Updated confirmation text
     if (!confirm(`Are you sure you want to lock in ${robot.name} for ${robot.price.toLocaleString()} UGX using your ${balanceName}?`)) return;
 
     setProcessingId(robot.id);
@@ -105,7 +117,6 @@ export default function AiRobots() {
       if (purchaseError) throw purchaseError;
 
       setHasRobots(true); // Unlock subsequent purchases
-      // 🚨 Updated success text
       alert(`Successfully locked in ${robot.name}! Your daily income will start accruing.`);
 
     } catch (error: any) {
@@ -116,7 +127,9 @@ export default function AiRobots() {
   };
 
   // Filter robots based on the active tab
-  const filteredRobots = ROBOTS.filter(bot => activeTab === 'All' || bot.category === activeTab);
+  const filteredRobots = robots.filter(bot => activeTab === 'All' || bot.category === activeTab);
+
+  if (loading) return <div style={{ color: 'white', padding: '50px', textAlign: 'center' }}>Loading Robots...</div>;
 
   return (
     <div style={{ padding: '20px 15px', backgroundColor: '#000', minHeight: '100vh', color: 'white' }}>
@@ -160,12 +173,12 @@ export default function AiRobots() {
             <p style={{ fontSize: '0.7rem', color: '#888', margin: '0 0 10px 0' }}>{bot.model}</p>
             
             <p style={{ fontSize: '0.65rem', color: '#666', margin: 0 }}>PRICE</p>
-            <h5 style={{ margin: '0 0 10px 0', fontSize: '1.1rem', fontWeight: 'bold' }}>{bot.price.toLocaleString()}.00</h5>
+            <h5 style={{ margin: '0 0 10px 0', fontSize: '1.1rem', fontWeight: 'bold' }}>{Number(bot.price).toLocaleString()}.00</h5>
 
             <div style={{ display: 'flex', justifyContent: 'space-between', background: '#0a0a0a', padding: '8px', borderRadius: '6px', fontSize: '0.7rem', marginBottom: '15px' }}>
               <div style={{ textAlign: 'center' }}>
                 <div style={{ color: '#888' }}>DAILY</div>
-                <div style={{ color: '#00bfff', fontWeight: 'bold' }}>{bot.daily.toLocaleString()}</div>
+                <div style={{ color: '#00bfff', fontWeight: 'bold' }}>{Number(bot.daily).toLocaleString()}</div>
               </div>
               <div style={{ textAlign: 'center' }}>
                 <div style={{ color: '#888' }}>CYCLE</div>
@@ -173,7 +186,7 @@ export default function AiRobots() {
               </div>
               <div style={{ textAlign: 'center' }}>
                 <div style={{ color: '#888' }}>TOTAL</div>
-                <div style={{ color: '#00bfff', fontWeight: 'bold' }}>{bot.total.toLocaleString()}</div>
+                <div style={{ color: '#00bfff', fontWeight: 'bold' }}>{Number(bot.total).toLocaleString()}</div>
               </div>
             </div>
 
@@ -186,7 +199,6 @@ export default function AiRobots() {
                 cursor: 'pointer', opacity: processingId === bot.id ? 0.5 : 1
               }}
             >
-              {/* 🚨 Updated Button Text */}
               {processingId === bot.id ? 'Processing...' : 'Lock in'}
             </button>
           </div>
@@ -194,4 +206,4 @@ export default function AiRobots() {
       </div>
     </div>
   );
-              }
+        }
