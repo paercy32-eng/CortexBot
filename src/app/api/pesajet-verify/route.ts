@@ -9,25 +9,21 @@ const supabase = createClient(
 
 export async function POST(req: Request) {
   try {
-    const { reference } = await req.json();
+    const { transactionId } = await req.json();
 
     const pesajet = new PesaJet({
       apiKey: process.env.PESAJET_API_KEY || "YOUR_API_KEY_HERE",
     });
 
-    // 1. Ask PesaJet for the status
     let isPaid = false;
     try {
-      const payment = await pesajet.payments.get(reference);
-      
-      // Cast status to string to bypass the missing "COMPLETED" type in the SDK
+      const payment = await pesajet.payments.get(transactionId);
       const currentStatus = String(payment?.status);
       
       if (currentStatus === 'COMPLETED' || currentStatus === 'SUCCESSFUL') {
         isPaid = true;
       }
     } catch (err) {
-      // If fetching by reference fails, we return false and let the webhook handle the credit.
       return NextResponse.json({ success: false, message: 'Waiting for webhook' });
     }
 
@@ -35,11 +31,10 @@ export async function POST(req: Request) {
       return NextResponse.json({ success: false, message: 'Payment not completed yet' });
     }
 
-    // 2. Find the pending deposit
     const { data: deposit } = await supabase
       .from('pending_deposits')
       .select('*')
-      .eq('txid', reference)
+      .eq('txid', transactionId)
       .single();
 
     if (!deposit || deposit.status !== 'pending') {
@@ -48,10 +43,8 @@ export async function POST(req: Request) {
 
     const depositAmount = Number(deposit.amount_usd);
 
-    // 3. Mark as verified
     await supabase.from('pending_deposits').update({ status: 'verified' }).eq('id', deposit.id);
 
-    // 4. Fetch user profile
     const { data: profile } = await supabase
       .from('profiles')
       .select('balance_usd, total_deposited, referred_by, raffle_chances')
@@ -60,7 +53,6 @@ export async function POST(req: Request) {
 
     if (!profile) throw new Error("Profile not found");
 
-    // 5. Calculate balances and raffle chances
     let newChances = Number(profile.raffle_chances || 0);
     if (depositAmount >= 500000) newChances += 1;
 
@@ -70,7 +62,6 @@ export async function POST(req: Request) {
       raffle_chances: newChances
     }).eq('id', deposit.user_id);
 
-    // 6. Give 12% Commission to the referrer (Level 1 only)
     if (profile.referred_by) {
       const commissionAmount = depositAmount * 0.12;
       const { data: referrer } = await supabase.from('profiles').select('balance_usd, team_commission').eq('id', profile.referred_by).single();
@@ -95,4 +86,4 @@ export async function POST(req: Request) {
   } catch (error: any) {
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }
-      }
+}
