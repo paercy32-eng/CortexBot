@@ -10,9 +10,11 @@ export default function AiRobots() {
   const router = useRouter();
   
   const [user, setUser] = useState<any>(null);
-  const [balance, setBalance] = useState<number>(0);
-  const [totalDeposited, setTotalDeposited] = useState<number>(0); // 🚨 NEW: Track real deposits
-  const [hasRobots, setHasRobots] = useState<boolean>(false); // 🚨 NEW: Track if it's their first purchase
+  const [depositBalance, setDepositBalance] = useState<number>(0);
+  const [withdrawableBalance, setWithdrawableBalance] = useState<number>(0);
+  const [lockedIncome, setLockedIncome] = useState<number>(0);
+  
+  const [hasRobots, setHasRobots] = useState<boolean>(false); 
   const [processingId, setProcessingId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -24,19 +26,20 @@ export default function AiRobots() {
       }
       setUser(user);
 
-      // 1. Fetch balance and total deposited
+      // Fetch all three balances
       const { data: profile } = await supabase
         .from('profiles')
-        .select('balance_usd, total_deposited')
+        .select('balance_usd, withdrawable_balance, locked_ai_income')
         .eq('id', user.id)
         .single();
       
       if (profile) {
-        setBalance(Number(profile.balance_usd));
-        setTotalDeposited(Number(profile.total_deposited || 0));
+        setDepositBalance(Number(profile.balance_usd || 0));
+        setWithdrawableBalance(Number(profile.withdrawable_balance || 0));
+        setLockedIncome(Number(profile.locked_ai_income || 0));
       }
 
-      // 2. Check if the user already owns any robots
+      // Check if the user already owns any robots
       const { count } = await supabase
         .from('user_robots')
         .select('*', { count: 'exact', head: true })
@@ -50,34 +53,41 @@ export default function AiRobots() {
   const handleBuyRobot = async (robot: any) => {
     if (!user) return;
 
-    // 1. Basic Balance Check
-    if (balance < robot.price) {
-      alert("Insufficient wallet balance! Please deposit funds first.");
+    let isFirstPurchase = !hasRobots;
+    let currentBalanceToUse = isFirstPurchase ? depositBalance : withdrawableBalance;
+    let balanceName = isFirstPurchase ? 'Approved Deposit Balance' : 'Withdrawable Balance';
+
+    // 1. Check if they have enough in the correct bucket
+    if (currentBalanceToUse < robot.price) {
+      alert(`Insufficient ${balanceName}!\n\nYou need ${robot.price.toLocaleString()} UGX in your ${balanceName} to buy this robot.\n\n${isFirstPurchase ? 'Your first purchase must be fully funded by approved deposits.' : 'You cannot use locked AI income or deposit funds for subsequent purchases.'}`);
       return;
     }
 
-    // 🚨 2. FIRST PURCHASE RULE
-    // If they don't have any robots yet, their total deposits must cover the robot price.
-    if (!hasRobots) {
-      if (totalDeposited < robot.price) {
-        alert(`This is your first purchase. It must be fully funded by an approved deposit.\n\nYour total deposits: ${totalDeposited.toLocaleString()} UGX\nRobot price: ${robot.price.toLocaleString()} UGX\n\nYou need to deposit at least ${(robot.price - totalDeposited).toLocaleString()} UGX more to unlock this purchase.`);
-        return;
-      }
-    }
-
-    if (!confirm(`Are you sure you want to buy ${robot.name} for ${robot.price.toLocaleString()} UGX?`)) return;
+    if (!confirm(`Are you sure you want to buy ${robot.name} for ${robot.price.toLocaleString()} UGX using your ${balanceName}?`)) return;
 
     setProcessingId(robot.id);
 
     try {
-      const newBalance = balance - robot.price;
+      let updates: any = {};
+      
+      // 2. Deduct from the correct bucket
+      if (isFirstPurchase) {
+        updates.balance_usd = depositBalance - robot.price;
+        setDepositBalance(updates.balance_usd);
+      } else {
+        updates.withdrawable_balance = withdrawableBalance - robot.price;
+        setWithdrawableBalance(updates.withdrawable_balance);
+      }
+
+      // Update Profile Balance
       const { error: profileError } = await supabase
         .from('profiles')
-        .update({ balance_usd: newBalance })
+        .update(updates)
         .eq('id', user.id);
 
       if (profileError) throw profileError;
 
+      // 3. Grant the Robot
       const { error: purchaseError } = await supabase
         .from('user_robots')
         .insert({
@@ -92,9 +102,8 @@ export default function AiRobots() {
 
       if (purchaseError) throw purchaseError;
 
-      setBalance(newBalance);
-      setHasRobots(true); // Update local state so they can make multiple purchases without restriction
-      alert(`Successfully purchased ${robot.name}! Your income will start in 24 hours.`);
+      setHasRobots(true); // Unlock subsequent purchases
+      alert(`Successfully purchased ${robot.name}! Your daily income will start accruing.`);
 
     } catch (error: any) {
       alert("Error buying robot: " + error.message);
@@ -106,13 +115,27 @@ export default function AiRobots() {
   return (
     <div style={{ padding: '20px 15px', backgroundColor: '#000', minHeight: '100vh', color: 'white' }}>
       
-      {/* Header & Balance */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+      {/* Header & Balances */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '20px' }}>
         <h1 style={{ fontFamily: 'Playfair Display, serif', fontSize: '1.5rem', color: '#00bfff', margin: 0 }}>AI Robots</h1>
-        <div style={{ background: '#121c2d', padding: '8px 12px', borderRadius: '8px', border: '1px solid #00bfff' }}>
-          <span style={{ fontSize: '0.7rem', color: '#888' }}>BALANCE: </span>
-          <span style={{ fontWeight: 'bold', color: '#00bfff' }}>{balance.toLocaleString()} UGX</span>
+        
+        <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+          <div style={{ background: '#121c2d', padding: '8px 12px', borderRadius: '8px', border: '1px solid #00ff00', flex: 1 }}>
+            <span style={{ fontSize: '0.65rem', color: '#888', display: 'block' }}>DEPOSIT BALANCE (For 1st Buy)</span>
+            <span style={{ fontWeight: 'bold', color: '#00ff00' }}>{depositBalance.toLocaleString()} UGX</span>
+          </div>
+          
+          <div style={{ background: '#121c2d', padding: '8px 12px', borderRadius: '8px', border: '1px solid #00bfff', flex: 1 }}>
+            <span style={{ fontSize: '0.65rem', color: '#888', display: 'block' }}>WITHDRAWABLE BALANCE</span>
+            <span style={{ fontWeight: 'bold', color: '#00bfff' }}>{withdrawableBalance.toLocaleString()} UGX</span>
+          </div>
         </div>
+
+        {lockedIncome > 0 && (
+          <div style={{ background: 'rgba(255, 165, 0, 0.1)', padding: '8px 12px', borderRadius: '8px', border: '1px solid #ffa500', textAlign: 'center' }}>
+            <span style={{ fontSize: '0.75rem', color: '#ffa500' }}>Locked AI Income: <strong>{lockedIncome.toLocaleString()} UGX</strong> (Unlocks after cycle ends)</span>
+          </div>
+        )}
       </div>
 
       {/* Tabs */}
@@ -169,4 +192,4 @@ export default function AiRobots() {
       </div>
     </div>
   );
-}
+  }
