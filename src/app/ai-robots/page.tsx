@@ -10,11 +10,13 @@ export default function AiRobots() {
   const router = useRouter();
   
   const [user, setUser] = useState<any>(null);
+  
+  // These states are kept to handle the purchase logic, but hidden from the UI
   const [depositBalance, setDepositBalance] = useState<number>(0);
   const [withdrawableBalance, setWithdrawableBalance] = useState<number>(0);
-  const [lockedIncome, setLockedIncome] = useState<number>(0);
-  
   const [hasRobots, setHasRobots] = useState<boolean>(false); 
+  
+  const [activeTab, setActiveTab] = useState('All'); // State for filtering
   const [processingId, setProcessingId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -26,17 +28,16 @@ export default function AiRobots() {
       }
       setUser(user);
 
-      // Fetch all three balances
+      // Fetch balances silently for the purchase logic
       const { data: profile } = await supabase
         .from('profiles')
-        .select('balance_usd, withdrawable_balance, locked_ai_income')
+        .select('balance_usd, withdrawable_balance')
         .eq('id', user.id)
         .single();
       
       if (profile) {
         setDepositBalance(Number(profile.balance_usd || 0));
         setWithdrawableBalance(Number(profile.withdrawable_balance || 0));
-        setLockedIncome(Number(profile.locked_ai_income || 0));
       }
 
       // Check if the user already owns any robots
@@ -112,43 +113,41 @@ export default function AiRobots() {
     }
   };
 
+  // Filter robots based on the active tab
+  const filteredRobots = ROBOTS.filter(bot => activeTab === 'All' || bot.category === activeTab);
+
   return (
     <div style={{ padding: '20px 15px', backgroundColor: '#000', minHeight: '100vh', color: 'white' }}>
       
-      {/* Header & Balances */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '20px' }}>
-        <h1 style={{ fontFamily: 'Playfair Display, serif', fontSize: '1.5rem', color: '#00bfff', margin: 0 }}>AI Robots</h1>
-        
-        <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-          <div style={{ background: '#121c2d', padding: '8px 12px', borderRadius: '8px', border: '1px solid #00ff00', flex: 1 }}>
-            <span style={{ fontSize: '0.65rem', color: '#888', display: 'block' }}>DEPOSIT BALANCE (For 1st Buy)</span>
-            <span style={{ fontWeight: 'bold', color: '#00ff00' }}>{depositBalance.toLocaleString()} UGX</span>
-          </div>
-          
-          <div style={{ background: '#121c2d', padding: '8px 12px', borderRadius: '8px', border: '1px solid #00bfff', flex: 1 }}>
-            <span style={{ fontSize: '0.65rem', color: '#888', display: 'block' }}>WITHDRAWABLE BALANCE</span>
-            <span style={{ fontWeight: 'bold', color: '#00bfff' }}>{withdrawableBalance.toLocaleString()} UGX</span>
-          </div>
-        </div>
-
-        {lockedIncome > 0 && (
-          <div style={{ background: 'rgba(255, 165, 0, 0.1)', padding: '8px 12px', borderRadius: '8px', border: '1px solid #ffa500', textAlign: 'center' }}>
-            <span style={{ fontSize: '0.75rem', color: '#ffa500' }}>Locked AI Income: <strong>{lockedIncome.toLocaleString()} UGX</strong> (Unlocks after cycle ends)</span>
-          </div>
-        )}
+      {/* Header */}
+      <div style={{ marginBottom: '20px' }}>
+        <h1 style={{ fontFamily: 'Playfair Display, serif', fontSize: '1.8rem', color: '#00bfff', margin: 0 }}>AI Robots</h1>
       </div>
 
-      {/* Tabs */}
-      <div style={{ display: 'flex', gap: '15px', marginBottom: '20px', borderBottom: '1px solid #333', paddingBottom: '10px', overflowX: 'auto' }}>
-        <span style={{ color: '#00bfff', fontWeight: 'bold', whiteSpace: 'nowrap', borderBottom: '2px solid #00bfff', paddingBottom: '9px' }}>All</span>
-        <span style={{ color: '#666', whiteSpace: 'nowrap' }}>Star Wars</span>
-        <span style={{ color: '#666', whiteSpace: 'nowrap' }}>Pop Culture</span>
-        <span style={{ color: '#666', whiteSpace: 'nowrap' }}>Real World</span>
+      {/* Functional Tabs */}
+      <div style={{ display: 'flex', gap: '20px', marginBottom: '20px', borderBottom: '1px solid #333', paddingBottom: '10px', overflowX: 'auto', scrollbarWidth: 'none' }}>
+        {['All', 'Star Wars', 'Pop Culture', 'Real World'].map((tab) => (
+          <span 
+            key={tab}
+            onClick={() => setActiveTab(tab)}
+            style={{ 
+              color: activeTab === tab ? '#00bfff' : '#666', 
+              fontWeight: activeTab === tab ? 'bold' : 'normal', 
+              whiteSpace: 'nowrap', 
+              borderBottom: activeTab === tab ? '2px solid #00bfff' : 'none', 
+              paddingBottom: '9px',
+              cursor: 'pointer',
+              fontSize: '1rem'
+            }}
+          >
+            {tab}
+          </span>
+        ))}
       </div>
 
       {/* Robot Grid */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
-        {ROBOTS.map((bot: any) => (
+        {filteredRobots.map((bot: any) => (
           <div key={bot.id} style={{ background: '#121c2d', border: '1px solid rgba(0, 191, 255, 0.2)', borderRadius: '12px', padding: '15px', display: 'flex', flexDirection: 'column' }}>
             
             <div style={{ height: '100px', background: '#000', borderRadius: '8px', marginBottom: '10px', overflow: 'hidden' }}>
@@ -192,4 +191,4 @@ export default function AiRobots() {
       </div>
     </div>
   );
-  }
+}
