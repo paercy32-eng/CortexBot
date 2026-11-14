@@ -1,66 +1,121 @@
 import { NextResponse } from 'next/server';
+import { createClient } from '@supabase/supabase-js';
+import crypto from 'crypto';
+
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+);
 
 export async function POST(req: Request) {
   try {
-    const body = await req.json();
-    const { amount, phone, reference } = body;
-
-    // 1. Format Phone Number to E.164 (e.g., 0771234567 -> +256771234567)
-    let formattedPhone = phone.trim();
-    if (formattedPhone.startsWith('0')) {
-      formattedPhone = '+256' + formattedPhone.substring(1);
-    } else if (!formattedPhone.startsWith('+')) {
-      formattedPhone = '+256' + formattedPhone;
+    const signature = req.headers.get('x-webhook-signature');
+    if (!signature) {
+      return NextResponse.json({ error: 'Missing signature header' }, { status: 401 });
     }
 
-    // 2. Detect Provider (Basic Uganda Logic)
-    let provider = 'mtn'; // Default
-    if (
-      formattedPhone.startsWith('+25670') || 
-      formattedPhone.startsWith('+25675') || 
-      formattedPhone.startsWith('+25674')
-    ) {
-      provider = 'airtel';
+    const rawBody = await req.text();
+    const payload = JSON.parse(rawBody);
+
+    const webhookSecret = process.env.PESAJET_WEBHOOK_SECRET || '';
+    const hmac = crypto.createHmac('sha256', webhookSecret);
+    const digest = hmac.update(rawBody).digest('hex');
+
+    if (digest !== signature) {
+      console.error('Webhook signature mismatch');
+      return NextResponse.json({ error: 'Invalid signature' }, { status: 401 });
     }
 
-    // 3. Get API Key from Environment Variables
-    const PESAJET_API_KEY = process.env.PESAJET_API_KEY || "YOUR_API_KEY_HERE";
+    const { event, amount, reference } = payload;
 
-    // 4. Send Request to PesaJet
-    const response = await fetch('https://payments.pesajet.com/api/v1/collections', {
-      method: 'POST',
-      headers: {
-        'X-API-Key': PESAJET_API_KEY,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        amount: amount,
-        currency: 'UGX',
-        phoneNumber: formattedPhone,
-        provider: provider,
-        reference: reference,
-        description: 'CortexBot Wallet Deposit'
-      }),
-    });
+    if (event === 'payment.completed') {
+      console.log(`Payment completed for ref: ${reference}`);
 
-    const data = await response.json();
+      const { data: deposit, error: fetchError } = await supabase
+        .from('pending_deposits')
+        .select('*')
+        .eq('txid', reference)
+        .single();
 
-    if (!response.ok) {
-      throw new Error(data.message || 'Failed to initiate payment');
+      if (fetchError || !deposit || deposit.status !== 'pending') {
+        return NextResponse.json({ received: true, message: 'Already processed' });
+      }
+
+      const depositAmount = Number(amount);
+
+      await supabase
+        .from('pending_deposits')
+        .update({ status: 'verified' })
+        .eq('id', deposit.id);
+
+      // Fetch profile
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('balance_usd, total_deposited, referred_by, raffle_chances')
+        .eq('id', deposit.user_id)
+        .single();
+
+      if (!profile) {
+        console.error('Profile not found for user:', deposit.user_id);
+        return NextResponse.json({ error: 'User profile not found' }, { status: 404 });
+      }
+
+      // Calculate new balances and raffle chances
+      const newBalance = Number(profile.balance_usd || 0) + depositAmount;
+      const newTotalDeposited = Number(profile.total_deposited || 0) + depositAmount;
+      
+      // 🎟️ GIVE 1 RAFFLE CHANCE IF DEPOSIT IS 500,000 OR MORE
+      let newChances = Number(profile.raffle_chances || 0);
+      if (depositAmount >= 500000) {
+        newChances += 1;
+      }
+
+      await supabase
+        .from('profiles')
+        .update({
+          balance_usd: newBalance,
+          total_deposited: newTotalDeposited,
+          raffle_chances: newChances
+        })
+        .eq('id', deposit.user_id);
+
+      // 💰 NEW COMMISSION LOGIC: 12% Level 1 ONLY
+      const referrerId = profile.referred_by;
+      if (referrerId) {
+        const commissionAmount = depositAmount * 0.12; // 12%
+        
+        // Fetch referrer
+        const { data: referrer } = await supabase
+          .from('profiles')
+          .select('balance_usd, team_commission')
+          .eq('id', referrerId)
+          .single();
+
+        if (referrer) {
+          // Update referrer balance and team_commission
+          await supabase
+            .from('profiles')
+            .update({ 
+              balance_usd: Number(referrer.balance_usd || 0) + commissionAmount,
+              team_commission: Number(referrer.team_commission || 0) + commissionAmount
+            })
+            .eq('id', referrerId);
+
+          // Log transaction
+          await supabase.from('transactions').insert({
+            user_id: referrerId,
+            type: 'COMMISSION',
+            amount_usd: commissionAmount,
+            status: 'completed'
+          });
+        }
+      }
     }
 
-    // 5. Return transaction ID to the frontend
-    return NextResponse.json({ 
-      success: true, 
-      transactionId: data.transactionId || data.id,
-      status: data.status 
-    });
+    return NextResponse.json({ received: true });
 
   } catch (error: any) {
-    console.error('PesaJet Error:', error);
-    return NextResponse.json(
-      { success: false, error: error.message }, 
-      { status: 500 }
-    );
+    console.error('Webhook error:', error);
+    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }
