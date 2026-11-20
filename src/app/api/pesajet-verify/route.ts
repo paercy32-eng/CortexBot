@@ -9,22 +9,25 @@ const supabase = createClient(
 
 export async function POST(req: Request) {
   try {
-    const { transactionId } = await req.json();
+    const { reference } = await req.json(); // We will pass the merchant reference here
 
     const pesajet = new PesaJet({
       apiKey: process.env.PESAJET_API_KEY || "YOUR_API_KEY_HERE",
     });
 
-    // 1. Ask PesaJet for the status
     let isPaid = false;
     try {
-      const payment = await pesajet.payments.get(transactionId);
+      // Ask PesaJet for the status using the reference
+      const payment = await pesajet.payments.get(reference);
+      console.log('Polling Status:', payment?.status); // Helpful for debugging
+
       const currentStatus = String(payment?.status);
       
       if (currentStatus === 'COMPLETED' || currentStatus === 'SUCCESSFUL') {
         isPaid = true;
       }
-    } catch (err) {
+    } catch (err: any) {
+      console.log("PesaJet Poll Error:", err.message);
       return NextResponse.json({ success: false, message: 'Waiting for webhook' });
     }
 
@@ -32,23 +35,21 @@ export async function POST(req: Request) {
       return NextResponse.json({ success: false, message: 'Payment not completed yet' });
     }
 
-    // 2. Atomic Update: Only process if status is STILL 'pending'
+    // Atomic Update: Only process if status is STILL 'pending'
     const { data: deposit, error: updateError } = await supabase
       .from('pending_deposits')
       .update({ status: 'verified' })
-      .eq('txid', transactionId)
-      .eq('status', 'pending') // 🚨 This prevents double-crediting
+      .eq('txid', reference)
+      .eq('status', 'pending')
       .select()
       .single();
 
-    // If no data returned, it means it was already processed by the webhook
     if (updateError || !deposit) {
       return NextResponse.json({ success: true, message: 'Already processed' });
     }
 
     const depositAmount = Number(deposit.amount_usd);
 
-    // 3. Fetch user profile
     const { data: profile } = await supabase
       .from('profiles')
       .select('balance_usd, total_deposited, referred_by, raffle_chances')
@@ -57,34 +58,29 @@ export async function POST(req: Request) {
 
     if (!profile) throw new Error("Profile not found");
 
-    // 4. Calculate balances and raffle chances
+    // Award raffle chance if >= 100,000
     let newChances = Number(profile.raffle_chances || 0);
-    if (depositAmount >= 500000) newChances += 1;
+    if (depositAmount >= 100000) newChances += 1;
 
-    // Deposit goes to balance_usd (can only be used for 1st purchase)
     await supabase.from('profiles').update({
       balance_usd: Number(profile.balance_usd || 0) + depositAmount,
       total_deposited: Number(profile.total_deposited || 0) + depositAmount,
       raffle_chances: newChances
     }).eq('id', deposit.user_id);
 
-    // 5. Give 12% Commission to Level 1 Referrer
     if (profile.referred_by) {
       const commissionAmount = depositAmount * 0.12;
-      
       const { data: referrer } = await supabase
         .from('profiles')
-        .select('withdrawable_balance') // Commission goes to Withdrawable Balance
+        .select('withdrawable_balance')
         .eq('id', profile.referred_by)
         .single();
       
       if (referrer) {
-        // Add to referrer's WITHDRAWABLE balance
         await supabase.from('profiles').update({
           withdrawable_balance: Number(referrer.withdrawable_balance || 0) + commissionAmount
         }).eq('id', profile.referred_by);
 
-        // Log the transaction once
         await supabase.from('transactions').insert({
           user_id: profile.referred_by,
           type: 'COMMISSION',
