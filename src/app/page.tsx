@@ -25,57 +25,43 @@ export default function Home() {
         return;
       }
 
-      // 1. Fetch Profile
-      const { data: profileData } = await supabase
-        .from('profiles')
-        .select('full_name, balance_usd, withdrawable_balance, locked_ai_income, vip_level')
-        .eq('id', user.id)
-        .single();
-        
-      if (profileData) setProfile(profileData);
+      try {
+        // 🚨 PERFORMANCE FIX: Fetch everything in parallel instead of one by one
+        const [profileRes, robotsRes, teamRes, inviteRes] = await Promise.all([
+          supabase.from('profiles').select('full_name, balance_usd, withdrawable_balance, locked_ai_income, vip_level').eq('id', user.id).single(),
+          supabase.from('user_robots').select('daily_income, cycle_days, created_at, status').eq('user_id', user.id).eq('status', 'active'),
+          supabase.rpc('get_team_members', { p_user_id: user.id }),
+          supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('referred_by', user.id)
+        ]);
 
-      // 2. Fetch Active Robots (for AI Income & Total Earned)
-      const { data: robots } = await supabase
-        .from('user_robots')
-        .select('daily_income, cycle_days, created_at, status')
-        .eq('user_id', user.id)
-        .eq('status', 'active');
+        if (profileRes.data) setProfile(profileRes.data);
 
-      let dailyIncomeSum = 0;
-      let totalEarnedSum = 0;
+        let dailyIncomeSum = 0;
+        let totalEarnedSum = 0;
 
-      if (robots) {
-        robots.forEach(bot => {
-          dailyIncomeSum += Number(bot.daily_income);
-          
-          // Calculate total earned so far based on days elapsed
-          const start = new Date(bot.created_at);
-          const now = new Date();
-          const daysElapsed = Math.floor((now.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
-          const daysToCalculate = Math.min(daysElapsed, bot.cycle_days);
-          
-          if (daysToCalculate > 0) {
-            totalEarnedSum += daysToCalculate * Number(bot.daily_income);
-          }
+        if (robotsRes.data) {
+          robotsRes.data.forEach(bot => {
+            dailyIncomeSum += Number(bot.daily_income);
+            const start = new Date(bot.created_at);
+            const now = new Date();
+            const daysElapsed = Math.floor((now.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
+            const daysToCalculate = Math.min(daysElapsed, bot.cycle_days);
+            if (daysToCalculate > 0) totalEarnedSum += daysToCalculate * Number(bot.daily_income);
+          });
+        }
+
+        setStats({
+          dailyAiIncome: dailyIncomeSum,
+          totalEarned: totalEarnedSum,
+          teamSize: teamRes.data ? teamRes.data.length : 0,
+          invites: inviteRes.count || 0
         });
+
+      } catch (error) {
+        console.error("Error fetching data", error);
+      } finally {
+        setLoading(false);
       }
-
-      // 3. Fetch Team Members (RPC) and Direct Invites
-      const { data: teamData } = await supabase.rpc('get_team_members', { p_user_id: user.id });
-      
-      const { count: inviteCount } = await supabase
-        .from('profiles')
-        .select('*', { count: 'exact', head: true })
-        .eq('referred_by', user.id);
-
-      setStats({
-        dailyAiIncome: dailyIncomeSum,
-        totalEarned: totalEarnedSum,
-        teamSize: teamData ? teamData.length : 0,
-        invites: inviteCount || 0
-      });
-
-      setLoading(false);
     };
     
     fetchData();
@@ -104,8 +90,6 @@ export default function Home() {
           <span style={{ color: '#00ff41', fontSize: '0.75rem', fontWeight: 'bold' }}>🔥 User 1234 just won a T-800! </span>
           <span style={{ color: '#559955', margin: '0 15px' }}>|</span>
           <span style={{ color: '#00ff41', fontSize: '0.75rem', fontWeight: 'bold' }}>💰 User 5678 deposited 500,000 UGX! </span>
-          <span style={{ color: '#559955', margin: '0 15px' }}>|</span>
-          <span style={{ color: '#00ff41', fontSize: '0.75rem', fontWeight: 'bold' }}>🤖 User 9101 bought Optimus Prime! </span>
         </div>
       </div>
 
@@ -150,19 +134,11 @@ export default function Home() {
 
         {/* Quick Actions */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px', marginBottom: '30px' }}>
-          <button 
-            onClick={() => router.push('/deposit')}
-            style={{ background: '#00ff41', color: '#000', padding: '16px', borderRadius: '12px', fontWeight: 'bold', fontSize: '1rem', border: 'none', cursor: 'pointer', boxShadow: '0 4px 15px rgba(0, 255, 65, 0.4)', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '8px' }}
-          >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M12 5v14M5 12l7 7 7-7"/></svg>
-            Deposit
+          <button onClick={() => router.push('/deposit')} style={{ background: '#00ff41', color: '#000', padding: '16px', borderRadius: '12px', fontWeight: 'bold', fontSize: '1rem', border: 'none', cursor: 'pointer', boxShadow: '0 4px 15px rgba(0, 255, 65, 0.4)', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '8px' }}>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M12 5v14M5 12l7 7 7-7"/></svg> Deposit
           </button>
-          <button 
-            onClick={() => router.push('/withdraw')}
-            style={{ background: 'rgba(10, 28, 10, 0.8)', color: '#00ff41', padding: '16px', borderRadius: '12px', fontWeight: 'bold', fontSize: '1rem', border: '1px solid #00ff41', cursor: 'pointer', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '8px' }}
-          >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
-            Withdraw
+          <button onClick={() => router.push('/withdraw')} style={{ background: 'rgba(10, 28, 10, 0.8)', color: '#00ff41', padding: '16px', borderRadius: '12px', fontWeight: 'bold', fontSize: '1rem', border: '1px solid #00ff41', cursor: 'pointer', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '8px' }}>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M12 19V5M5 12l7-7 7 7"/></svg> Withdraw
           </button>
         </div>
 
@@ -220,11 +196,7 @@ export default function Home() {
           
           <div style={{ display: 'flex', gap: '15px', overflowX: 'auto', paddingBottom: '15px', scrollbarWidth: 'none' }}>
             {featuredRobots.map((bot) => (
-              <div 
-                key={bot.id} 
-                onClick={() => router.push('/ai-robots')}
-                style={{ minWidth: '140px', background: 'linear-gradient(180deg, #0a1c0a 0%, #050505 100%)', border: '1px solid #1a3c1a', borderRadius: '12px', padding: '10px', cursor: 'pointer' }}
-              >
+              <div key={bot.id} onClick={() => router.push('/ai-robots')} style={{ minWidth: '140px', background: 'linear-gradient(180deg, #0a1c0a 0%, #050505 100%)', border: '1px solid #1a3c1a', borderRadius: '12px', padding: '10px', cursor: 'pointer' }}>
                 <div style={{ height: '80px', borderRadius: '8px', overflow: 'hidden', marginBottom: '10px' }}>
                   <img src={bot.image} alt={bot.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                 </div>
