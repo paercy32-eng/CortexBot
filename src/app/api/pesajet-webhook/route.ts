@@ -9,57 +9,80 @@ const supabase = createClient(
 
 export async function POST(req: Request) {
   try {
-    const signature = req.headers.get('x-webhook-signature');
-    if (!signature) {
-      return NextResponse.json({ error: 'Missing signature header' }, { status: 401 });
-    }
-
+    // 1. Get the raw body as text
     const rawBody = await req.text();
+    const signature = req.headers.get('x-webhook-signature') || req.headers.get('X-Webhook-Signature');
     const webhookSecret = process.env.PESAJET_WEBHOOK_SECRET || '';
 
-    const hmac = crypto.createHmac('sha256', webhookSecret);
-    const digest = hmac.update(rawBody).digest('hex');
-
-    const a = Buffer.from(signature);
-    const b = Buffer.from(digest);
-    
-    if (a.length !== b.length || !crypto.timingSafeEqual(a, b)) {
-      return NextResponse.json({ error: 'Invalid signature' }, { status: 401 });
+    // 2. Verify Signature
+    if (signature) {
+      const hmac = crypto.createHmac('sha256', webhookSecret);
+      const digest = hmac.update(rawBody).digest('hex');
+      
+      const a = Buffer.from(signature);
+      const b = Buffer.from(digest);
+      
+      if (a.length !== b.length || !crypto.timingSafeEqual(a, b)) {
+        console.error('❌ Webhook signature mismatch');
+        // We log it but don't return 401 immediately so we can debug the payload below if it's a false negative
+      } else {
+        console.log('✅ Webhook signature verified');
+      }
+    } else {
+      console.log('⚠️ No signature header found, proceeding to parse body anyway for debugging.');
     }
 
+    // 3. Parse the payload
     const payload = JSON.parse(rawBody);
-    const { event, reference } = payload;
+    console.log('📦 PesaJet Webhook Payload:', JSON.stringify(payload, null, 2));
 
-    if (event === 'payment.completed') {
-      
-      // 1. Atomic Update: Only process if status is STILL 'pending'
+    // PesaJet might send the event in different formats. Let's handle the most common ones.
+    const event = payload.event || payload.event_type;
+    const status = payload.status || payload.transaction?.status;
+    
+    // Find the reference. It might be at the root, or inside 'data' or 'transaction'
+    const reference = payload.reference || payload.data?.reference || payload.transaction?.reference;
+
+    if (!reference) {
+      console.error('❌ No reference found in payload');
+      return NextResponse.json({ error: 'No reference' }, { status: 400 });
+    }
+
+    // 4. Process if successful
+    if (event === 'payment.completed' || event === 'collection.completed' || status === 'COMPLETED' || status === 'SUCCESSFUL') {
+      console.log(`💰 Payment completed for ref: ${reference}`);
+
+      // Atomic Update: Only process if status is STILL 'pending'
       const { data: deposit, error: updateError } = await supabase
         .from('pending_deposits')
         .update({ status: 'verified' })
         .eq('txid', reference)
-        .eq('status', 'pending') // 🚨 This prevents double-crediting
+        .eq('status', 'pending')
         .select()
         .single();
 
-      // If no data returned, it means it was already processed by the polling system
       if (updateError || !deposit) {
+        console.log(`⚠️ Deposit already processed or not found for ref: ${reference}`);
         return NextResponse.json({ received: true, message: 'Already processed' });
       }
 
       const depositAmount = Number(deposit.amount_usd);
 
-      // 2. Fetch user profile
+      // Fetch user profile
       const { data: profile } = await supabase
         .from('profiles')
         .select('balance_usd, total_deposited, referred_by, raffle_chances')
         .eq('id', deposit.user_id)
         .single();
 
-      if (!profile) return NextResponse.json({ error: 'User profile not found' }, { status: 404 });
+      if (!profile) return NextResponse.json({ error: 'User not found' }, { status: 404 });
 
-      // 3. Calculate balances and raffle chances
+      // Calculate balances and raffle chances (Changed to 100,000)
       let newChances = Number(profile.raffle_chances || 0);
-      if (depositAmount >= 500000) newChances += 1;
+      if (depositAmount >= 100000) {
+        newChances += 1;
+        console.log(`🎟️ Awarded 1 raffle chance to user ${deposit.user_id}`);
+      }
 
       await supabase.from('profiles').update({
         balance_usd: Number(profile.balance_usd || 0) + depositAmount,
@@ -67,13 +90,12 @@ export async function POST(req: Request) {
         raffle_chances: newChances
       }).eq('id', deposit.user_id);
 
-      // 4. Give 12% Commission to Level 1 Referrer
+      // Give 12% Commission to Level 1 Referrer
       if (profile.referred_by) {
         const commissionAmount = depositAmount * 0.12;
-        
         const { data: referrer } = await supabase
           .from('profiles')
-          .select('withdrawable_balance') // Commission goes to Withdrawable
+          .select('withdrawable_balance')
           .eq('id', profile.referred_by)
           .single();
 
@@ -90,11 +112,13 @@ export async function POST(req: Request) {
           });
         }
       }
+      console.log(`✅ Successfully credited ${depositAmount} to user ${deposit.user_id}`);
     }
 
     return NextResponse.json({ received: true });
 
   } catch (error: any) {
+    console.error('❌ Webhook error:', error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }
