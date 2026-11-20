@@ -27,7 +27,8 @@ export default function Deposit() {
       const res = await fetch('/api/pesajet-verify', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ transactionId }),
+        // 🚨 THIS IS THE FIX: We pass 'reference' instead of 'transactionId'
+        body: JSON.stringify({ reference: transactionId }),
       });
       
       const data = await res.json();
@@ -49,6 +50,7 @@ export default function Deposit() {
     setIsSuccess(false);
 
     const depositAmount = Number(amount);
+    // 🚨 Minimum is 500 for testing
     if (!depositAmount || depositAmount < 500) {
       setMessage('Minimum deposit is 500 UGX.');
       return;
@@ -60,6 +62,7 @@ export default function Deposit() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Please log in first.");
 
+      // Generate a unique reference for this deposit
       const reference = crypto.randomUUID();
 
       // Send request to PesaJet API
@@ -72,23 +75,24 @@ export default function Deposit() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Failed to initiate payment");
 
-      // 🚨 CRITICAL FIX: Save PesaJet's transactionId, not our reference
+      // 🚨 CRITICAL: Save PesaJet's transactionId to the database
       const pesajetTxId = data.transactionId;
 
       const { error: dbError } = await supabase.from('pending_deposits').insert({
         user_id: user.id,
-        txid: pesajetTxId, // Save the correct ID
+        txid: pesajetTxId, 
         amount_usd: depositAmount,
         status: 'pending'
       });
 
       if (dbError) throw dbError;
 
+      // Start Polling
       setMessage('USSD Prompt sent! Please enter your PIN on your phone.');
       setVerifying(true);
       setLoading(false);
 
-      // Poll using the correct PesaJet ID
+      // Check immediately, then every 5 seconds
       checkPaymentStatus(pesajetTxId);
       pollingRef.current = setInterval(() => checkPaymentStatus(pesajetTxId), 5000);
 
@@ -100,13 +104,16 @@ export default function Deposit() {
 
   if (isSuccess) {
     return (
-      <div style={{ backgroundColor: '#000', minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '20px', color: 'white' }}>
-        <div style={{ width: '80px', height: '80px', borderRadius: '50%', backgroundColor: 'rgba(0, 255, 0, 0.1)', border: '2px solid #00ff00', display: 'flex', justifyContent: 'center', alignItems: 'center', marginBottom: '20px' }}>
-          <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#00ff00" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+      <div style={{ backgroundColor: '#050505', minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '20px', color: 'white' }}>
+        <div style={{ width: '80px', height: '80px', borderRadius: '50%', backgroundColor: 'rgba(0, 255, 65, 0.1)', border: '2px solid #00ff41', display: 'flex', justifyContent: 'center', alignItems: 'center', marginBottom: '20px' }}>
+          <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#00ff41" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
         </div>
-        <h2 style={{ fontFamily: 'Playfair Display, serif', fontSize: '1.8rem', marginBottom: '10px' }}>Deposit Successful</h2>
-        <p style={{ color: '#888', marginBottom: '30px', textAlign: 'center' }}>{message}</p>
-        <button onClick={() => router.push('/')} style={{ background: '#00bfff', color: '#000', padding: '15px 40px', borderRadius: '30px', fontWeight: 'bold', border: 'none', cursor: 'pointer' }}>
+        <h2 style={{ fontFamily: 'Playfair Display, serif', fontSize: '1.8rem', marginBottom: '10px', color: '#00ff41' }}>Deposit Successful</h2>
+        <p style={{ color: '#559955', marginBottom: '30px', textAlign: 'center' }}>{message}</p>
+        <button 
+          onClick={() => router.push('/')}
+          style={{ background: '#00ff41', color: '#000', padding: '15px 40px', borderRadius: '30px', fontWeight: 'bold', border: 'none', cursor: 'pointer' }}
+        >
           Return Home
         </button>
       </div>
@@ -114,35 +121,76 @@ export default function Deposit() {
   }
 
   return (
-    <div style={{ padding: '20px 15px', backgroundColor: '#000', minHeight: '100vh', color: 'white', display: 'flex', flexDirection: 'column' }}>
+    <div style={{ padding: '20px 15px', backgroundColor: '#050505', minHeight: '100vh', color: 'white', display: 'flex', flexDirection: 'column' }}>
+      
+      {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', marginBottom: '30px' }}>
-        <button onClick={() => router.push('/')} style={{ background: 'none', border: 'none', color: '#00bfff', fontSize: '1.5rem', cursor: 'pointer', marginRight: '15px' }}>←</button>
-        <h1 style={{ fontFamily: 'Playfair Display, serif', fontSize: '1.5rem', margin: 0 }}>Deposit Funds</h1>
+        <button onClick={() => router.push('/')} style={{ background: 'none', border: 'none', color: '#00ff41', fontSize: '1.5rem', cursor: 'pointer', marginRight: '15px' }}>
+          ←
+        </button>
+        <h1 style={{ fontFamily: 'Playfair Display, serif', fontSize: '1.5rem', margin: 0, color: '#fff' }}>Deposit Funds</h1>
       </div>
 
-      <div style={{ background: '#121c2d', border: '1px solid rgba(0, 191, 255, 0.3)', borderRadius: '15px', padding: '20px' }}>
+      {/* Form Container */}
+      <div style={{ background: '#0a1c0a', border: '1px solid #1a3c1a', borderRadius: '15px', padding: '20px' }}>
         <form onSubmit={handleDeposit}>
-          <label style={{ display: 'block', fontSize: '0.8rem', color: '#888', marginBottom: '8px' }}>Amount (UGX)</label>
-          <input type="number" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="Min 500" min="500" required disabled={verifying}
-            style={{ width: '100%', padding: '15px', borderRadius: '8px', border: '1px solid #333', background: '#0a0a0a', color: '#fff', fontSize: '1rem', marginBottom: '5px' }} />
-          <p style={{ fontSize: '0.75rem', color: '#888', margin: '0 0 20px 0' }}>Minimum deposit: 500 UGX</p>
+          
+          <label style={{ display: 'block', fontSize: '0.8rem', color: '#559955', marginBottom: '8px' }}>Amount (UGX)</label>
+          <input 
+            type="number" 
+            value={amount}
+            onChange={(e) => setAmount(e.target.value)}
+            placeholder="Min 500"
+            min="500"
+            required
+            disabled={verifying}
+            style={{ width: '100%', padding: '15px', borderRadius: '8px', border: '1px solid #1a3c1a', background: '#000', color: '#fff', fontSize: '1rem', marginBottom: '5px' }}
+          />
+          <p style={{ fontSize: '0.75rem', color: '#559955', margin: '0 0 20px 0' }}>Minimum deposit: 500 UGX</p>
 
-          <label style={{ display: 'block', fontSize: '0.8rem', color: '#888', marginBottom: '8px' }}>Phone Number</label>
-          <input type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="e.g. 0771234567" required disabled={verifying}
-            style={{ width: '100%', padding: '15px', borderRadius: '8px', border: '1px solid #333', background: '#0a0a0a', color: '#fff', fontSize: '1rem', marginBottom: '20px' }} />
+          <label style={{ display: 'block', fontSize: '0.8rem', color: '#559955', marginBottom: '8px' }}>Phone Number (MTN or Airtel)</label>
+          <input 
+            type="tel" 
+            value={phone}
+            onChange={(e) => setPhone(e.target.value)}
+            placeholder="e.g. 0771234567"
+            required
+            disabled={verifying}
+            style={{ width: '100%', padding: '15px', borderRadius: '8px', border: '1px solid #1a3c1a', background: '#000', color: '#fff', fontSize: '1rem', marginBottom: '20px' }}
+          />
 
-          <button type="submit" disabled={loading || verifying}
-            style={{ width: '100%', padding: '15px', borderRadius: '8px', border: 'none', background: '#00bfff', color: '#000', fontWeight: 'bold', fontSize: '1rem', cursor: (loading || verifying) ? 'not-allowed' : 'pointer', opacity: (loading || verifying) ? 0.6 : 1 }}>
+          <button 
+            type="submit" 
+            disabled={loading || verifying}
+            style={{ 
+              width: '100%', padding: '15px', borderRadius: '8px', border: 'none', 
+              background: '#00ff41', color: '#000', fontWeight: 'bold', fontSize: '1rem', 
+              cursor: (loading || verifying) ? 'not-allowed' : 'pointer', opacity: (loading || verifying) ? 0.6 : 1
+            }}
+          >
             {loading ? 'Sending Prompt...' : verifying ? 'Waiting for PIN...' : 'Deposit Now'}
           </button>
         </form>
 
+        {/* Status Message */}
         {message && (
-          <div style={{ marginTop: '20px', padding: '15px', borderRadius: '8px', background: message.includes('Error') ? 'rgba(255, 0, 0, 0.1)' : 'rgba(0, 191, 255, 0.1)', border: `1px solid ${message.includes('Error') ? '#ff4444' : '#00bfff'}`, color: message.includes('Error') ? '#ff4444' : '#00bfff', fontSize: '0.9rem', textAlign: 'center' }}>
+          <div style={{ marginTop: '20px', padding: '15px', borderRadius: '8px', background: message.includes('Error') || message.includes('Minimum') ? 'rgba(255, 0, 0, 0.1)' : 'rgba(0, 255, 65, 0.1)', border: `1px solid ${message.includes('Error') || message.includes('Minimum') ? '#ff4444' : '#00ff41'}`, color: message.includes('Error') || message.includes('Minimum') ? '#ff4444' : '#00ff41', fontSize: '0.9rem', textAlign: 'center' }}>
+            {verifying && (
+              <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '10px' }}>
+                <svg className="spinner" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <line x1="12" y1="2" x2="12" y2="6"></line><line x1="12" y1="18" x2="12" y2="22"></line><line x1="4.93" y1="4.93" x2="7.76" y2="7.76"></line><line x1="16.24" y1="16.24" x2="19.07" y2="19.07"></line><line x1="2" y1="12" x2="6" y2="12"></line><line x1="18" y1="12" x2="22" y2="12"></line><line x1="4.93" y1="19.07" x2="7.76" y2="16.24"></line><line x1="16.24" y1="7.76" x2="19.07" y2="4.93"></line>
+                </svg>
+              </div>
+            )}
             {message}
           </div>
         )}
       </div>
+      
+      <style>{`
+        .spinner { animation: spin 1s linear infinite; }
+        @keyframes spin { 100% { transform: rotate(360deg); } }
+      `}</style>
     </div>
   );
-        }
+                   }
