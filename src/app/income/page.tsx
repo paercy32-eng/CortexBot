@@ -8,13 +8,12 @@ import Link from 'next/link';
 export default function IncomeHistory() {
   const [robots, setRobots] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [currentTime, setCurrentTime] = useState(Date.now()); // For live countdown
+  const [currentTime, setCurrentTime] = useState(Date.now()); 
   
   const supabase = createClient();
   const router = useRouter();
 
   useEffect(() => {
-    // Live timer to update the countdown every second
     const timer = setInterval(() => setCurrentTime(Date.now()), 1000);
 
     const fetchIncome = async () => {
@@ -65,15 +64,17 @@ export default function IncomeHistory() {
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
             {robots.map((bot) => {
-              // 🚨 24H COUNTDOWN LOGIC
-              const lastPayout = new Date(bot.last_payout).getTime();
-              const nextPayout = lastPayout + (24 * 60 * 60 * 1000); // Add 24 hours
-              const timeRemaining = nextPayout - currentTime;
-              
-              const isCompleted = bot.status === 'completed' || (bot.days_paid || 0) >= bot.cycle_days;
-              const progressPercent = ((bot.days_paid || 0) / bot.cycle_days) * 100;
+              // 🚨 FIXED: Use bot.days_paid directly instead of calculating from time
+              const paidDays = bot.days_paid || 0;
+              const earnedSoFar = paidDays * Number(bot.daily_income);
+              const progressPercent = (paidDays / bot.cycle_days) * 100;
+              const isCompleted = bot.status === 'completed' || paidDays >= bot.cycle_days;
 
-              // Format the countdown string
+              // Timer logic
+              const lastPayout = new Date(bot.last_payout).getTime();
+              const nextPayout = lastPayout + (24 * 60 * 60 * 1000); 
+              const timeRemaining = nextPayout - currentTime;
+
               let countdownText = "Paid";
               if (!isCompleted && timeRemaining > 0) {
                 const hours = Math.floor(timeRemaining / (1000 * 60 * 60));
@@ -91,7 +92,7 @@ export default function IncomeHistory() {
                     </div>
                     <div style={{ textAlign: 'right' }}>
                       <p style={{ margin: '0 0 5px 0', fontWeight: 'bold', color: '#00ff41', fontSize: '1.1rem' }}>
-                        +{((bot.days_paid || 0) * Number(bot.daily_income)).toLocaleString()} UGX
+                        +{earnedSoFar.toLocaleString()} UGX
                       </p>
                       <p style={{ margin: 0, fontSize: '0.75rem', color: '#559955' }}>Earned so far</p>
                     </div>
@@ -99,7 +100,7 @@ export default function IncomeHistory() {
 
                   <div style={{ marginTop: '15px' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: '#ccc', marginBottom: '5px' }}>
-                      <span>Day {bot.days_paid || 0}</span>
+                      <span>Day {paidDays}</span>
                       <span>{bot.cycle_days} Days Total</span>
                     </div>
                     <div style={{ width: '100%', height: '8px', backgroundColor: '#1a3c1a', borderRadius: '4px', overflow: 'hidden' }}>
@@ -107,7 +108,6 @@ export default function IncomeHistory() {
                     </div>
                   </div>
 
-                  {/* Live Countdown */}
                   {!isCompleted ? (
                     <div style={{ marginTop: '12px', display: 'flex', justifyContent: 'space-between', backgroundColor: '#000', padding: '8px 12px', borderRadius: '8px', border: '1px dashed #1a3c1a' }}>
                       <span style={{ fontSize: '0.75rem', color: '#559955' }}>Next Payout:</span>
@@ -126,4 +126,4 @@ export default function IncomeHistory() {
       </div>
     </div>
   );
-                        }
+}
