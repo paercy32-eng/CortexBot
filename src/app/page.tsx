@@ -9,7 +9,7 @@ export default function Home() {
   const [profile, setProfile] = useState<any>(null);
   const [stats, setStats] = useState({
     dailyAiIncome: 0,
-    totalEarned: 0,
+    todayEarned: 0, // 🚨 Changed to todayEarned
     teamSize: 0,
     invites: 0
   });
@@ -26,7 +26,6 @@ export default function Home() {
       }
 
       try {
-        // 🚨 PERFORMANCE FIX: Fetch everything in parallel instead of one by one
         const [profileRes, robotsRes, teamRes, inviteRes] = await Promise.all([
           supabase.from('profiles').select('full_name, balance_usd, withdrawable_balance, locked_ai_income, vip_level').eq('id', user.id).single(),
           supabase.from('user_robots').select('daily_income, cycle_days, created_at, status').eq('user_id', user.id).eq('status', 'active'),
@@ -37,22 +36,40 @@ export default function Home() {
         if (profileRes.data) setProfile(profileRes.data);
 
         let dailyIncomeSum = 0;
-        let totalEarnedSum = 0;
+        let todayEarnedSum = 0;
 
         if (robotsRes.data) {
+          const now = new Date();
+          // Get the exact timestamp for midnight at the start of today
+          const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+
           robotsRes.data.forEach(bot => {
             dailyIncomeSum += Number(bot.daily_income);
-            const start = new Date(bot.created_at);
-            const now = new Date();
-            const daysElapsed = Math.floor((now.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
-            const daysToCalculate = Math.min(daysElapsed, bot.cycle_days);
-            if (daysToCalculate > 0) totalEarnedSum += daysToCalculate * Number(bot.daily_income);
+            
+            // 🚨 PER-HOUR CALCULATION LOGIC
+            const purchaseTime = new Date(bot.created_at).getTime();
+            
+            // We start counting from midnight today, OR from when they bought it (whichever is later)
+            const calculationStartTime = Math.max(startOfToday, purchaseTime);
+            
+            // Calculate how many hours have passed since that start time
+            const hoursElapsed = Math.max(0, (now.getTime() - calculationStartTime) / (1000 * 60 * 60));
+            
+            // Hourly rate is daily income divided by 24 hours
+            const hourlyRate = Number(bot.daily_income) / 24;
+            
+            let earnedToday = hoursElapsed * hourlyRate;
+            
+            // Cap it so it doesn't exceed the daily income limit
+            if (earnedToday > Number(bot.daily_income)) earnedToday = Number(bot.daily_income);
+            
+            todayEarnedSum += earnedToday;
           });
         }
 
         setStats({
           dailyAiIncome: dailyIncomeSum,
-          totalEarned: totalEarnedSum,
+          todayEarned: Math.floor(todayEarnedSum), // Round down for cleaner display
           teamSize: teamRes.data ? teamRes.data.length : 0,
           invites: inviteRes.count || 0
         });
@@ -65,6 +82,10 @@ export default function Home() {
     };
     
     fetchData();
+    
+    // Refresh the stats every 1 minute so "Today's Earnings" goes up live
+    const interval = setInterval(fetchData, 60000);
+    return () => clearInterval(interval);
   }, [router, supabase]);
 
   if (loading) {
@@ -162,7 +183,7 @@ export default function Home() {
               </div>
               <span style={{ fontSize: '0.75rem', color: '#559955' }}>Today's Earnings</span>
             </div>
-            <h3 style={{ margin: 0, fontSize: '1.2rem', color: '#fff' }}>{stats.totalEarned.toLocaleString()}</h3>
+            <h3 style={{ margin: 0, fontSize: '1.2rem', color: '#fff' }}>{stats.todayEarned.toLocaleString()}</h3>
           </div>
 
           <div style={{ backgroundColor: '#0a1c0a', border: '1px solid #1a3c1a', borderRadius: '12px', padding: '15px' }}>
@@ -215,4 +236,4 @@ export default function Home() {
       `}</style>
     </div>
   );
-          }
+              }
