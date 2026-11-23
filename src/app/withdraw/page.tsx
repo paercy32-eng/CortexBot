@@ -7,7 +7,7 @@ import { useRouter } from 'next/navigation';
 export default function Withdraw() {
   const [amount, setAmount] = useState('');
   const [phone, setPhone] = useState('');
-  const [balance, setBalance] = useState(0);
+  const [balance, setBalance] = useState(0); // This will now hold WITHDRAWABLE balance
   const [hasActiveRobot, setHasActiveRobot] = useState(false);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
@@ -17,7 +17,6 @@ export default function Withdraw() {
   const supabase = createClient();
   const router = useRouter();
 
-  // Fetch the user's current balance, bound account details, and check for active robots
   useEffect(() => {
     const fetchUserData = async () => {
       const { data: { user } } = await supabase.auth.getUser();
@@ -26,15 +25,15 @@ export default function Withdraw() {
         return;
       }
 
-      // 1. Fetch Profile
+      // 1. Fetch Profile - 🚨 FIXED: Targeting withdrawable_balance
       const { data: profile } = await supabase
         .from('profiles')
-        .select('balance_usd, bound_name, bound_phone')
+        .select('withdrawable_balance, bound_name, bound_phone')
         .eq('id', user.id)
         .single();
       
       if (profile) {
-        setBalance(Number(profile.balance_usd || 0));
+        setBalance(Number(profile.withdrawable_balance || 0)); // Set balance to the correct pot
         if (profile.bound_phone) setPhone(profile.bound_phone);
       }
 
@@ -70,7 +69,7 @@ export default function Withdraw() {
       return;
     }
     if (withdrawAmount > balance) {
-      setMessage('Insufficient balance.');
+      setMessage('Insufficient withdrawable balance.');
       return;
     }
 
@@ -80,11 +79,11 @@ export default function Withdraw() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Please log in first.");
 
-      // 2. Deduct the balance immediately
+      // 2. Deduct from WITHDRAWABLE balance immediately
       const newBalance = balance - withdrawAmount;
       const { error: profileError } = await supabase
         .from('profiles')
-        .update({ balance_usd: newBalance })
+        .update({ withdrawable_balance: newBalance }) // 🚨 FIXED: Deducting from correct column
         .eq('id', user.id);
 
       if (profileError) throw profileError;
@@ -120,20 +119,20 @@ export default function Withdraw() {
   const netPayout = parsedAmount - fee;
 
   return (
-    <div style={{ padding: '20px 15px', backgroundColor: '#000', minHeight: '100vh', color: 'white', display: 'flex', flexDirection: 'column' }}>
+    <div style={{ padding: '20px 15px', backgroundColor: '#050505', minHeight: '100vh', color: 'white', display: 'flex', flexDirection: 'column' }}>
       
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', marginBottom: '20px' }}>
-        <button onClick={() => router.push('/')} style={{ background: 'none', border: 'none', color: '#00bfff', fontSize: '1.5rem', cursor: 'pointer', marginRight: '15px' }}>
+        <button onClick={() => router.push('/')} style={{ background: 'none', border: 'none', color: '#00ff41', fontSize: '1.5rem', cursor: 'pointer', marginRight: '15px' }}>
           ←
         </button>
         <h1 style={{ fontFamily: 'Playfair Display, serif', fontSize: '1.5rem', margin: 0 }}>Withdraw Funds</h1>
       </div>
 
       {/* Available Balance Display */}
-      <div style={{ background: '#121c2d', border: '1px solid #00bfff', borderRadius: '12px', padding: '15px', marginBottom: '20px', textAlign: 'center' }}>
-        <p style={{ margin: 0, fontSize: '0.8rem', color: '#888', textTransform: 'uppercase' }}>Available Balance</p>
-        <h2 style={{ margin: '5px 0 0 0', fontSize: '2rem', color: '#00bfff' }}>{balance.toLocaleString()} UGX</h2>
+      <div style={{ background: '#0a1c0a', border: '1px solid #00ff41', borderRadius: '12px', padding: '15px', marginBottom: '20px', textAlign: 'center' }}>
+        <p style={{ margin: 0, fontSize: '0.8rem', color: '#559955', textTransform: 'uppercase' }}>Available Withdrawable Balance</p>
+        <h2 style={{ margin: '5px 0 0 0', fontSize: '2rem', color: '#00ff41' }}>{balance.toLocaleString()} UGX</h2>
       </div>
 
       {/* 🚨 Withdrawal Locked Warning */}
@@ -149,19 +148,19 @@ export default function Withdraw() {
       )}
 
       {isSuccess ? (
-        <div style={{ background: 'rgba(0, 255, 0, 0.1)', border: '1px solid #00ff00', borderRadius: '12px', padding: '30px 20px', textAlign: 'center' }}>
-          <svg width="50" height="50" viewBox="0 0 24 24" fill="none" stroke="#00ff00" strokeWidth="2" style={{ margin: '0 auto 15px auto' }}><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
-          <h2 style={{ fontFamily: 'Playfair Display, serif', fontSize: '1.5rem', color: '#00ff00', marginBottom: '10px' }}>Request Submitted</h2>
+        <div style={{ background: 'rgba(0, 255, 65, 0.1)', border: '1px solid #00ff41', borderRadius: '12px', padding: '30px 20px', textAlign: 'center' }}>
+          <svg width="50" height="50" viewBox="0 0 24 24" fill="none" stroke="#00ff41" strokeWidth="2" style={{ margin: '0 auto 15px auto' }}><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+          <h2 style={{ fontFamily: 'Playfair Display, serif', fontSize: '1.5rem', color: '#00ff41', marginBottom: '10px' }}>Request Submitted</h2>
           <p style={{ color: '#ccc', fontSize: '0.9rem', marginBottom: '20px' }}>{message}</p>
-          <button onClick={() => router.push('/')} style={{ background: '#00bfff', color: '#000', padding: '12px 30px', borderRadius: '30px', fontWeight: 'bold', border: 'none', cursor: 'pointer' }}>
+          <button onClick={() => router.push('/')} style={{ background: '#00ff41', color: '#000', padding: '12px 30px', borderRadius: '30px', fontWeight: 'bold', border: 'none', cursor: 'pointer' }}>
             Back to Home
           </button>
         </div>
       ) : (
-        <div style={{ background: '#121c2d', border: '1px solid #333', borderRadius: '15px', padding: '20px', opacity: hasActiveRobot ? 1 : 0.5 }}>
+        <div style={{ background: '#0a1c0a', border: '1px solid #1a3c1a', borderRadius: '15px', padding: '20px', opacity: hasActiveRobot ? 1 : 0.5 }}>
           <form onSubmit={handleWithdraw}>
             
-            <label style={{ display: 'block', fontSize: '0.8rem', color: '#888', marginBottom: '8px' }}>Amount (UGX)</label>
+            <label style={{ display: 'block', fontSize: '0.8rem', color: '#559955', marginBottom: '8px' }}>Amount (UGX)</label>
             <input 
               type="number" 
               value={amount}
@@ -169,11 +168,11 @@ export default function Withdraw() {
               placeholder="Min 10,000"
               required
               disabled={!hasActiveRobot}
-              style={{ width: '100%', padding: '15px', borderRadius: '8px', border: '1px solid #333', background: '#0a0a0a', color: '#fff', fontSize: '1rem', marginBottom: '5px' }}
+              style={{ width: '100%', padding: '15px', borderRadius: '8px', border: '1px solid #1a3c1a', background: '#000', color: '#fff', fontSize: '1rem', marginBottom: '5px' }}
             />
-            <p style={{ fontSize: '0.75rem', color: '#888', margin: '0 0 15px 0' }}>Minimum withdrawal: 10,000 UGX</p>
+            <p style={{ fontSize: '0.75rem', color: '#559955', margin: '0 0 15px 0' }}>Minimum withdrawal: 10,000 UGX</p>
 
-            <label style={{ display: 'block', fontSize: '0.8rem', color: '#888', marginBottom: '8px' }}>Phone Number to Receive Funds</label>
+            <label style={{ display: 'block', fontSize: '0.8rem', color: '#559955', marginBottom: '8px' }}>Phone Number to Receive Funds</label>
             <input 
               type="tel" 
               value={phone}
@@ -181,13 +180,13 @@ export default function Withdraw() {
               placeholder="e.g. 0771234567"
               required
               disabled={!hasActiveRobot}
-              style={{ width: '100%', padding: '15px', borderRadius: '8px', border: '1px solid #333', background: '#0a0a0a', color: '#fff', fontSize: '1rem', marginBottom: '20px' }}
+              style={{ width: '100%', padding: '15px', borderRadius: '8px', border: '1px solid #1a3c1a', background: '#000', color: '#fff', fontSize: '1rem', marginBottom: '20px' }}
             />
 
             {/* Fee Breakdown */}
             {parsedAmount > 0 && (
-              <div style={{ backgroundColor: '#0a0a0a', borderRadius: '8px', padding: '15px', marginBottom: '20px', border: '1px dashed #444' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', color: '#888', marginBottom: '8px' }}>
+              <div style={{ backgroundColor: '#000', borderRadius: '8px', padding: '15px', marginBottom: '20px', border: '1px dashed #1a3c1a' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', color: '#559955', marginBottom: '8px' }}>
                   <span>Requested Amount:</span>
                   <span>{parsedAmount.toLocaleString()} UGX</span>
                 </div>
@@ -195,7 +194,7 @@ export default function Withdraw() {
                   <span>Fee (15%):</span>
                   <span>-{fee.toLocaleString()} UGX</span>
                 </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '1rem', color: '#00ff00', fontWeight: 'bold', borderTop: '1px solid #333', paddingTop: '8px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '1rem', color: '#00ff41', fontWeight: 'bold', borderTop: '1px solid #1a3c1a', paddingTop: '8px' }}>
                   <span>You Receive:</span>
                   <span>{netPayout.toLocaleString()} UGX</span>
                 </div>
@@ -207,7 +206,7 @@ export default function Withdraw() {
               disabled={loading || !hasActiveRobot}
               style={{ 
                 width: '100%', padding: '15px', borderRadius: '8px', border: 'none', 
-                background: '#00bfff', color: '#000', fontWeight: 'bold', fontSize: '1rem', 
+                background: '#00ff41', color: '#000', fontWeight: 'bold', fontSize: '1rem', 
                 cursor: (loading || !hasActiveRobot) ? 'not-allowed' : 'pointer', 
                 opacity: (loading || !hasActiveRobot) ? 0.5 : 1
               }}
@@ -226,4 +225,4 @@ export default function Withdraw() {
       )}
     </div>
   );
-  }
+        }
