@@ -7,8 +7,13 @@ import { useRouter } from 'next/navigation';
 export default function Withdraw() {
   const [amount, setAmount] = useState('');
   const [phone, setPhone] = useState('');
-  const [balance, setBalance] = useState(0); // This will now hold WITHDRAWABLE balance
+  const [balance, setBalance] = useState(0);
   const [hasActiveRobot, setHasActiveRobot] = useState(false);
+  
+  // New rules state
+  const [dailyWithdraws, setDailyWithdraws] = useState(0);
+  const [isWithinHours, setIsWithinHours] = useState(true);
+  
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
   const [isSuccess, setIsSuccess] = useState(false);
@@ -25,7 +30,12 @@ export default function Withdraw() {
         return;
       }
 
-      // 1. Fetch Profile - 🚨 FIXED: Targeting withdrawable_balance
+      // 1. Check Time Window (6 AM to 5 PM local time)
+      const currentHour = new Date().getHours();
+      const withinHours = currentHour >= 6 && currentHour < 17;
+      setIsWithinHours(withinHours);
+
+      // 2. Fetch Profile (Withdrawable Balance & Bound Account)
       const { data: profile } = await supabase
         .from('profiles')
         .select('withdrawable_balance, bound_name, bound_phone')
@@ -33,18 +43,28 @@ export default function Withdraw() {
         .single();
       
       if (profile) {
-        setBalance(Number(profile.withdrawable_balance || 0)); // Set balance to the correct pot
+        setBalance(Number(profile.withdrawable_balance || 0));
         if (profile.bound_phone) setPhone(profile.bound_phone);
       }
 
-      // 2. Check for Active Robots
-      const { count } = await supabase
+      // 3. Check for Active Robots
+      const { count: robotCount } = await supabase
         .from('user_robots')
         .select('*', { count: 'exact', head: true })
         .eq('user_id', user.id)
         .eq('status', 'active');
+      setHasActiveRobot((robotCount || 0) > 0);
 
-      setHasActiveRobot((count || 0) > 0);
+      // 4. Check Daily Withdraw Limit (Max 2 per day)
+      const todayStr = new Date().toISOString().split('T')[0]; // YYYY-MM-DD in UTC
+      
+      const { count: withdrawCount } = await supabase
+        .from('withdrawal_requests')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', user.id)
+        .gte('created_at', `${todayStr}T00:00:00Z`); // Check from start of today
+      
+      setDailyWithdraws(withdrawCount || 0);
 
       setFetching(false);
     };
@@ -56,16 +76,23 @@ export default function Withdraw() {
     setMessage('');
     setIsSuccess(false);
 
+    // Validations
     if (!hasActiveRobot) {
       setMessage('You must have an active robot to withdraw funds.');
       return;
     }
+    if (!isWithinHours) {
+      setMessage('Withdrawals are only allowed between 6:00 AM and 5:00 PM.');
+      return;
+    }
+    if (dailyWithdraws >= 2) {
+      setMessage('You have reached your daily limit of 2 withdrawals.');
+      return;
+    }
 
     const withdrawAmount = Number(amount);
-    
-    // 1. Validation
-    if (!withdrawAmount || withdrawAmount < 10000) {
-      setMessage('Minimum withdrawal is 10,000 UGX.');
+    if (!withdrawAmount || withdrawAmount < 5000) {
+      setMessage('Minimum withdrawal is 5,000 UGX.');
       return;
     }
     if (withdrawAmount > balance) {
@@ -79,16 +106,16 @@ export default function Withdraw() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Please log in first.");
 
-      // 2. Deduct from WITHDRAWABLE balance immediately
+      // Deduct from WITHDRAWABLE balance
       const newBalance = balance - withdrawAmount;
       const { error: profileError } = await supabase
         .from('profiles')
-        .update({ withdrawable_balance: newBalance }) // 🚨 FIXED: Deducting from correct column
+        .update({ withdrawable_balance: newBalance })
         .eq('id', user.id);
 
       if (profileError) throw profileError;
 
-      // 3. Insert the withdrawal request into the database
+      // Insert Withdrawal Request
       const { error: reqError } = await supabase.from('withdrawal_requests').insert({
         user_id: user.id,
         amount_usd: withdrawAmount,
@@ -98,8 +125,9 @@ export default function Withdraw() {
 
       if (reqError) throw reqError;
 
-      // 4. Show Success
+      // Show Success
       setBalance(newBalance);
+      setDailyWithdraws(prev => prev + 1);
       setIsSuccess(true);
       setMessage('Withdrawal request submitted successfully! Admin will process it shortly.');
       setAmount('');
@@ -113,7 +141,6 @@ export default function Withdraw() {
 
   if (fetching) return <div style={{ color: 'white', padding: '20px', textAlign: 'center', marginTop: '50px' }}>Loading...</div>;
 
-  // Calculate fee and net payout for display
   const parsedAmount = Number(amount) || 0;
   const fee = parsedAmount * 0.15;
   const netPayout = parsedAmount - fee;
@@ -135,15 +162,25 @@ export default function Withdraw() {
         <h2 style={{ margin: '5px 0 0 0', fontSize: '2rem', color: '#00ff41' }}>{balance.toLocaleString()} UGX</h2>
       </div>
 
-      {/* 🚨 Withdrawal Locked Warning */}
+      {/* Warnings */}
       {!hasActiveRobot && (
         <div style={{ background: 'rgba(255, 0, 0, 0.1)', border: '1px solid #ff4444', borderRadius: '12px', padding: '15px', marginBottom: '20px', textAlign: 'center' }}>
-          <p style={{ margin: 0, color: '#ff4444', fontSize: '0.9rem', fontWeight: 'bold' }}>
-            ⚠️ Withdrawal Locked
-          </p>
-          <p style={{ margin: '5px 0 0 0', color: '#ccc', fontSize: '0.8rem' }}>
-            You must purchase an active robot to enable withdrawals.
-          </p>
+          <p style={{ margin: 0, color: '#ff4444', fontSize: '0.9rem', fontWeight: 'bold' }}>⚠️ Withdrawal Locked</p>
+          <p style={{ margin: '5px 0 0 0', color: '#ccc', fontSize: '0.8rem' }}>You must purchase an active robot to enable withdrawals.</p>
+        </div>
+      )}
+
+      {!isWithinHours && (
+        <div style={{ background: 'rgba(255, 165, 0, 0.1)', border: '1px solid #ffa500', borderRadius: '12px', padding: '15px', marginBottom: '20px', textAlign: 'center' }}>
+          <p style={{ margin: 0, color: '#ffa500', fontSize: '0.9rem', fontWeight: 'bold' }}>⏰ Closed</p>
+          <p style={{ margin: '5px 0 0 0', color: '#ccc', fontSize: '0.8rem' }}>Withdrawals are only available from 6:00 AM to 5:00 PM.</p>
+        </div>
+      )}
+
+      {dailyWithdraws >= 2 && (
+        <div style={{ background: 'rgba(255, 0, 0, 0.1)', border: '1px solid #ff4444', borderRadius: '12px', padding: '15px', marginBottom: '20px', textAlign: 'center' }}>
+          <p style={{ margin: 0, color: '#ff4444', fontSize: '0.9rem', fontWeight: 'bold' }}>Limit Reached</p>
+          <p style={{ margin: '5px 0 0 0', color: '#ccc', fontSize: '0.8rem' }}>You can only make 2 withdrawals per day.</p>
         </div>
       )}
 
@@ -157,7 +194,7 @@ export default function Withdraw() {
           </button>
         </div>
       ) : (
-        <div style={{ background: '#0a1c0a', border: '1px solid #1a3c1a', borderRadius: '15px', padding: '20px', opacity: hasActiveRobot ? 1 : 0.5 }}>
+        <div style={{ background: '#0a1c0a', border: '1px solid #1a3c1a', borderRadius: '15px', padding: '20px', opacity: (hasActiveRobot && isWithinHours && dailyWithdraws < 2) ? 1 : 0.5 }}>
           <form onSubmit={handleWithdraw}>
             
             <label style={{ display: 'block', fontSize: '0.8rem', color: '#559955', marginBottom: '8px' }}>Amount (UGX)</label>
@@ -165,12 +202,12 @@ export default function Withdraw() {
               type="number" 
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
-              placeholder="Min 10,000"
+              placeholder="Min 5,000"
               required
-              disabled={!hasActiveRobot}
+              disabled={!hasActiveRobot || !isWithinHours || dailyWithdraws >= 2}
               style={{ width: '100%', padding: '15px', borderRadius: '8px', border: '1px solid #1a3c1a', background: '#000', color: '#fff', fontSize: '1rem', marginBottom: '5px' }}
             />
-            <p style={{ fontSize: '0.75rem', color: '#559955', margin: '0 0 15px 0' }}>Minimum withdrawal: 10,000 UGX</p>
+            <p style={{ fontSize: '0.75rem', color: '#559955', margin: '0 0 15px 0' }}>Minimum withdrawal: 5,000 UGX (Max 2 per day)</p>
 
             <label style={{ display: 'block', fontSize: '0.8rem', color: '#559955', marginBottom: '8px' }}>Phone Number to Receive Funds</label>
             <input 
@@ -179,7 +216,7 @@ export default function Withdraw() {
               onChange={(e) => setPhone(e.target.value)}
               placeholder="e.g. 0771234567"
               required
-              disabled={!hasActiveRobot}
+              disabled={!hasActiveRobot || !isWithinHours || dailyWithdraws >= 2}
               style={{ width: '100%', padding: '15px', borderRadius: '8px', border: '1px solid #1a3c1a', background: '#000', color: '#fff', fontSize: '1rem', marginBottom: '20px' }}
             />
 
@@ -203,12 +240,12 @@ export default function Withdraw() {
 
             <button 
               type="submit" 
-              disabled={loading || !hasActiveRobot}
+              disabled={loading || !hasActiveRobot || !isWithinHours || dailyWithdraws >= 2}
               style={{ 
                 width: '100%', padding: '15px', borderRadius: '8px', border: 'none', 
                 background: '#00ff41', color: '#000', fontWeight: 'bold', fontSize: '1rem', 
-                cursor: (loading || !hasActiveRobot) ? 'not-allowed' : 'pointer', 
-                opacity: (loading || !hasActiveRobot) ? 0.5 : 1
+                cursor: (loading || !hasActiveRobot || !isWithinHours || dailyWithdraws >= 2) ? 'not-allowed' : 'pointer', 
+                opacity: (loading || !hasActiveRobot || !isWithinHours || dailyWithdraws >= 2) ? 0.5 : 1
               }}
             >
               {loading ? 'Processing...' : 'Confirm Withdrawal'}
@@ -225,4 +262,4 @@ export default function Withdraw() {
       )}
     </div>
   );
-        }
+              }
