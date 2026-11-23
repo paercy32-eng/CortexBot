@@ -27,7 +27,6 @@ export default function Deposit() {
       const res = await fetch('/api/pesajet-verify', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        // 🚨 THIS IS THE FIX: We pass 'reference' instead of 'transactionId'
         body: JSON.stringify({ reference: transactionId }),
       });
       
@@ -50,9 +49,9 @@ export default function Deposit() {
     setIsSuccess(false);
 
     const depositAmount = Number(amount);
-    // 🚨 Minimum is 500 for testing
-    if (!depositAmount || depositAmount < 500) {
-      setMessage('Minimum deposit is 500 UGX.');
+    // 🚨 MINIMUM DEPOSIT UPDATED TO 20,000
+    if (!depositAmount || depositAmount < 20000) {
+      setMessage('Minimum deposit is 20,000 UGX.');
       return;
     }
 
@@ -62,10 +61,8 @@ export default function Deposit() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Please log in first.");
 
-      // Generate a unique reference for this deposit
       const reference = crypto.randomUUID();
 
-      // Send request to PesaJet API
       const res = await fetch('/api/pesajet-deposit', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -75,7 +72,6 @@ export default function Deposit() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Failed to initiate payment");
 
-      // 🚨 CRITICAL: Save PesaJet's transactionId to the database
       const pesajetTxId = data.transactionId;
 
       const { error: dbError } = await supabase.from('pending_deposits').insert({
@@ -87,12 +83,10 @@ export default function Deposit() {
 
       if (dbError) throw dbError;
 
-      // Start Polling
       setMessage('USSD Prompt sent! Please enter your PIN on your phone.');
       setVerifying(true);
       setLoading(false);
 
-      // Check immediately, then every 5 seconds
       checkPaymentStatus(pesajetTxId);
       pollingRef.current = setInterval(() => checkPaymentStatus(pesajetTxId), 5000);
 
@@ -140,20 +134,20 @@ export default function Deposit() {
             type="number" 
             value={amount}
             onChange={(e) => setAmount(e.target.value)}
-            placeholder="Min 500"
-            min="500"
+            placeholder="Min 20,000"
+            min="20000"
             required
             disabled={verifying}
             style={{ width: '100%', padding: '15px', borderRadius: '8px', border: '1px solid #1a3c1a', background: '#000', color: '#fff', fontSize: '1rem', marginBottom: '5px' }}
           />
-          <p style={{ fontSize: '0.75rem', color: '#559955', margin: '0 0 20px 0' }}>Minimum deposit: 500 UGX</p>
+          <p style={{ fontSize: '0.75rem', color: '#559955', margin: '0 0 20px 0' }}>Minimum deposit: 20,000 UGX</p>
 
           <label style={{ display: 'block', fontSize: '0.8rem', color: '#559955', marginBottom: '8px' }}>Phone Number (MTN or Airtel)</label>
           <input 
             type="tel" 
             value={phone}
             onChange={(e) => setPhone(e.target.value)}
-            placeholder="e.g. 0771234567"
+            // 🚨 PLACEHOLDER REMOVED
             required
             disabled={verifying}
             style={{ width: '100%', padding: '15px', borderRadius: '8px', border: '1px solid #1a3c1a', background: '#000', color: '#fff', fontSize: '1rem', marginBottom: '20px' }}
@@ -193,4 +187,4 @@ export default function Deposit() {
       `}</style>
     </div>
   );
-                   }
+          }
