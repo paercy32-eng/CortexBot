@@ -49,7 +49,7 @@ export default function AiRobots() {
       
       if (owned) setUserRobots(owned);
 
-      // 3. Fetch all live robots from the database
+      // 3. Fetch ALL live robots from the database
       const { data: dbRobots } = await supabase
         .from('robots')
         .select('*')
@@ -112,13 +112,14 @@ export default function AiRobots() {
           daily_income: robot.daily,
           cycle_days: robot.cycle,
           status: 'active',
-          plan_type: robot.plan_type, // 🚨 Passing the plan type
+          plan_type: robot.plan_type,
+          is_granted: false, // 🚨 Ensures it counts as a real purchase in the Admin Panel
           last_payout: new Date().toISOString()
         });
 
       if (purchaseError) throw purchaseError;
 
-      // Add to local state so button changes to "Active" instantly
+      // Add to local state so button changes instantly
       setUserRobots(prev => [...prev, { robot_name: robot.name, status: 'active' }]);
       alert(`Successfully ${actionText === 'buy' ? 'activated' : 'locked in'} ${robot.name}!`);
 
@@ -129,6 +130,7 @@ export default function AiRobots() {
     }
   };
 
+  // 🚨 FIXED: When activeTab is 'All', it returns every single robot
   const filteredRobots = robots.filter(bot => activeTab === 'All' || bot.category === activeTab);
 
   if (loading) return <div style={{ color: '#00ff41', padding: '50px', textAlign: 'center', backgroundColor: '#050505', minHeight: '100vh' }}>Loading Robots...</div>;
@@ -230,4 +232,4 @@ export default function AiRobots() {
       </div>
     </div>
   );
-}
+                                        }
