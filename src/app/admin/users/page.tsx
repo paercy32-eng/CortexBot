@@ -7,7 +7,11 @@ import { useRouter } from 'next/navigation';
 export default function ManageUsers() {
   const [users, setUsers] = useState<any[]>([]);
   const [allUserRobots, setAllUserRobots] = useState<any[]>([]);
-  const [dbRobots, setDbRobots] = useState<any[]>([]); // 🚨 Store live robots
+  const [dbRobots, setDbRobots] = useState<any[]>([]);
+  
+  // Stats maps
+  const [teamStats, setTeamStats] = useState<{ [key: string]: { activeInvites: number, totalTeam: number } }>({});
+  
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   
@@ -26,13 +30,53 @@ export default function ManageUsers() {
     const [profilesRes, userRobotsRes, dbRobotsRes] = await Promise.all([
       supabase.from('profiles').select('*').order('created_at', { ascending: false }),
       supabase.from('user_robots').select('*').eq('status', 'active'),
-      supabase.from('robots').select('*').order('price', { ascending: true }) // 🚨 Fetch live robots
+      supabase.from('robots').select('*').order('price', { ascending: true })
     ]);
       
-    if (profilesRes.data) setUsers(profilesRes.data);
-    if (userRobotsRes.data) setAllUserRobots(userRobotsRes.data);
-    if (dbRobotsRes.data) setDbRobots(dbRobotsRes.data);
+    const fetchedUsers = profilesRes.data || [];
+    const fetchedUserRobots = userRobotsRes.data || [];
     
+    setUsers(fetchedUsers);
+    setAllUserRobots(fetchedUserRobots);
+    if (dbRobotsRes.data) setDbRobots(dbRobotsRes.data);
+
+    // 🚨 CALCULATE TEAM STATS
+    const stats: { [key: string]: { activeInvites: number, totalTeam: number } } = {};
+    
+    // Initialize stats for all users
+    fetchedUsers.forEach(u => {
+      stats[u.id] = { activeInvites: 0, totalTeam: 0 };
+    });
+
+    // 1. Calculate Active Invites (Level 1 only)
+    fetchedUsers.forEach(u => {
+      if (u.referred_by && stats[u.referred_by]) {
+        const hasDeposit = Number(u.total_deposited || 0) > 0;
+        const hasPurchased = fetchedUserRobots.some(r => r.user_id === u.id && r.is_granted !== true);
+        
+        if (hasDeposit || hasPurchased) {
+          stats[u.referred_by].activeInvites += 1;
+        }
+      }
+    });
+
+    // 2. Calculate Total Team (Recursive up to Level 3)
+    fetchedUsers.forEach(u => {
+      let currentReferrer = u.referred_by;
+      let level = 1;
+      
+      while (currentReferrer && level <= 3) {
+        if (stats[currentReferrer]) {
+          stats[currentReferrer].totalTeam += 1;
+        }
+        // Move up to the next level
+        const referrerObj = fetchedUsers.find(x => x.id === currentReferrer);
+        currentReferrer = referrerObj ? referrerObj.referred_by : null;
+        level++;
+      }
+    });
+
+    setTeamStats(stats);
     setLoading(false);
   };
 
@@ -72,7 +116,6 @@ export default function ManageUsers() {
     setProcessing(true);
 
     try {
-      // 🚨 Find the robot from the DB list, not the hardcoded file
       const robotData = dbRobots.find(r => r.id === selectedRobotToGrant);
       if (!robotData) throw new Error("Robot not found");
 
@@ -83,8 +126,8 @@ export default function ManageUsers() {
         daily_income: robotData.daily,
         cycle_days: robotData.cycle,
         status: 'active',
-        plan_type: robotData.plan_type, // Ensure plan type is passed
-        is_granted: true, // Mark as granted so it doesn't affect "Total Invested"
+        plan_type: robotData.plan_type,
+        is_granted: true, // 🚨 Mark as granted
         last_payout: new Date().toISOString()
       });
 
@@ -92,7 +135,7 @@ export default function ManageUsers() {
       
       alert(`${robotData.name} granted successfully!`);
       setSelectedRobotToGrant('');
-      fetchUsersAndRobots(); // Refresh list
+      fetchUsersAndRobots(); 
 
     } catch (err: any) {
       alert("Error: " + err.message);
@@ -110,7 +153,7 @@ export default function ManageUsers() {
       if (error) throw error;
       
       alert("Robot removed successfully!");
-      fetchUsersAndRobots(); // Refresh list
+      fetchUsersAndRobots(); 
 
     } catch (err: any) {
       alert("Error: " + err.message);
@@ -119,7 +162,6 @@ export default function ManageUsers() {
     }
   };
 
-  // Helper to format name or phone
   const getDisplayName = (user: any) => {
     if (user.full_name && user.full_name.trim() !== '') return user.full_name;
     if (user.phone) return `User ${user.phone.slice(-4)}`;
@@ -160,9 +202,8 @@ export default function ManageUsers() {
         ) : (
           filteredUsers.map((user) => {
             const userRobots = allUserRobots.filter(r => r.user_id === user.id);
-            
-            // 🚨 Calculate Real Balance (Deposit + Withdrawable)
             const realBalance = Number(user.balance_usd || 0) + Number(user.withdrawable_balance || 0);
+            const stats = teamStats[user.id] || { activeInvites: 0, totalTeam: 0 };
 
             return (
               <div key={user.id} style={{ background: '#0a1c0a', border: '1px solid #1a3c1a', borderRadius: '12px', padding: '15px' }}>
@@ -170,7 +211,6 @@ export default function ManageUsers() {
                 {/* User Info Header */}
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '10px' }}>
                   <div>
-                    {/* 🚨 Use Display Name Helper */}
                     <h3 style={{ margin: '0 0 5px 0', fontSize: '1.1rem', color: '#fff' }}>{getDisplayName(user)}</h3>
                     <p style={{ margin: 0, fontSize: '0.85rem', color: '#559955', fontFamily: 'monospace' }}>{user.phone}</p>
                     <p style={{ margin: '5px 0 0 0', fontSize: '0.9rem', color: '#00ff41', fontWeight: 'bold' }}>
@@ -200,15 +240,35 @@ export default function ManageUsers() {
                   </div>
                 </div>
 
+                {/* 🚨 TEAM STATS BADGES */}
+                <div style={{ display: 'flex', gap: '10px', marginBottom: '15px', flexWrap: 'wrap' }}>
+                  <div style={{ backgroundColor: 'rgba(0, 255, 65, 0.1)', border: '1px solid #1a3c1a', color: '#00ff41', padding: '4px 10px', borderRadius: '20px', fontSize: '0.75rem' }}>
+                    Active Invites: <strong>{stats.activeInvites}</strong>
+                  </div>
+                  <div style={{ backgroundColor: 'rgba(0, 191, 255, 0.1)', border: '1px solid #1a3c1a', color: '#00bfff', padding: '4px 10px', borderRadius: '20px', fontSize: '0.75rem' }}>
+                    Total Team: <strong>{stats.totalTeam}</strong>
+                  </div>
+                </div>
+
                 {/* Active Robots List */}
                 {userRobots.length > 0 && (
-                  <div style={{ marginTop: '15px', borderTop: '1px solid #1a3c1a', paddingTop: '10px' }}>
+                  <div style={{ borderTop: '1px solid #1a3c1a', paddingTop: '15px' }}>
                     <p style={{ margin: '0 0 10px 0', fontSize: '0.75rem', color: '#559955', textTransform: 'uppercase' }}>Active Robots</p>
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
                       {userRobots.map(robot => (
-                        <div key={robot.id} style={{ backgroundColor: 'rgba(0, 255, 65, 0.1)', border: '1px solid rgba(0, 255, 65, 0.3)', padding: '5px 10px', borderRadius: '15px', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.8rem' }}>
-                          <span>{robot.robot_name}</span>
-                          <button onClick={() => handleRemoveRobot(robot.id)} style={{ background: 'none', border: 'none', color: '#ff4444', cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
+                        <div key={robot.id} style={{ backgroundColor: '#000', border: '1px solid #1a3c1a', padding: '6px 10px', borderRadius: '8px', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.8rem' }}>
+                          <span style={{ color: '#fff' }}>{robot.robot_name}</span>
+                          
+                          {/* 🚨 GRANTED / PURCHASED BADGE */}
+                          <span style={{ 
+                            fontSize: '0.6rem', padding: '2px 6px', borderRadius: '4px', fontWeight: 'bold',
+                            backgroundColor: robot.is_granted ? 'rgba(255, 165, 0, 0.2)' : 'rgba(0, 255, 65, 0.2)',
+                            color: robot.is_granted ? '#ffa500' : '#00ff41'
+                          }}>
+                            {robot.is_granted ? 'GRANTED' : 'PURCHASED'}
+                          </span>
+
+                          <button onClick={() => handleRemoveRobot(robot.id)} style={{ background: 'none', border: 'none', color: '#ff4444', cursor: 'pointer', display: 'flex', alignItems: 'center', marginLeft: '5px' }}>
                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
                           </button>
                         </div>
@@ -246,7 +306,6 @@ export default function ManageUsers() {
               style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #1a3c1a', background: '#000', color: '#fff', fontSize: '0.9rem', marginBottom: '20px', outline: 'none' }}
             >
               <option value="">-- Choose Robot --</option>
-              {/* 🚨 Use Live DB Robots here */}
               {dbRobots.map(r => (
                 <option key={r.id} value={r.id}>{r.name} (Earns {r.daily.toLocaleString()} UGX/day)</option>
               ))}
