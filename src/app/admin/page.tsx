@@ -50,10 +50,10 @@ export default function AdminDashboard() {
       // 3. Total Invested (Robots bought with REAL money only)
       const { data: robots } = await supabase
         .from('user_robots')
-        .select('price_paid')
-        .eq('is_granted', false); 
+        .select('price_paid, is_granted');
       
-      const totalInv = robots?.reduce((sum, r) => sum + Number(r.price_paid), 0) || 0;
+      // 🚨 FIX: Safely filter out admin grants
+      const totalInv = robots?.filter(r => r.is_granted !== true).reduce((sum, r) => sum + Number(r.price_paid), 0) || 0;
 
       // 4. Total Withdrawn (Approved only)
       const { data: withdrawals } = await supabase
@@ -98,13 +98,11 @@ export default function AdminDashboard() {
       {/* KPI Cards */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '15px', marginBottom: '40px' }}>
         
-        {/* Full width Total Users */}
         <div style={{ background: '#0a1c0a', border: '1px solid #1a3c1a', borderRadius: '12px', padding: '20px' }}>
           <p style={{ margin: '0 0 5px 0', fontSize: '0.8rem', color: '#559955', textTransform: 'uppercase', letterSpacing: '1px' }}>Total Users</p>
           <h2 style={{ margin: 0, fontSize: '2rem', color: '#fff' }}>{kpis.users}</h2>
         </div>
 
-        {/* 2-column grid for Deposited & Invested */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
           <div style={{ background: '#0a1c0a', border: '1px solid #1a3c1a', borderRadius: '12px', padding: '20px' }}>
             <p style={{ margin: '0 0 5px 0', fontSize: '0.75rem', color: '#559955', textTransform: 'uppercase' }}>Total Deposited</p>
@@ -117,7 +115,6 @@ export default function AdminDashboard() {
           </div>
         </div>
 
-        {/* Full width Total Withdrawn */}
         <div style={{ background: '#0a1c0a', border: '1px solid #1a3c1a', borderRadius: '12px', padding: '20px' }}>
           <p style={{ margin: '0 0 5px 0', fontSize: '0.8rem', color: '#559955', textTransform: 'uppercase', letterSpacing: '1px' }}>Total Withdrawn (Approved)</p>
           <h2 style={{ margin: 0, fontSize: '1.8rem', color: '#ffa500' }}>{kpis.withdrawn.toLocaleString()} UGX</h2>
@@ -151,4 +148,4 @@ export default function AdminDashboard() {
 
     </div>
   );
-}
+          }
