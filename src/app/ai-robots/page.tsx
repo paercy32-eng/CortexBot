@@ -41,7 +41,7 @@ export default function AiRobots() {
         setWithdrawableBalance(Number(profile.withdrawable_balance || 0));
       }
 
-      // 2. Fetch user's owned robots (to show "Active" or "Locked in")
+      // 2. Fetch user's owned robots
       const { data: owned } = await supabase
         .from('user_robots')
         .select('robot_name, status')
@@ -65,7 +65,6 @@ export default function AiRobots() {
   const handleBuyRobot = async (robot: any) => {
     if (!user) return;
 
-    // Check if they already own this robot
     const alreadyOwned = userRobots.some(r => r.robot_name === robot.name && r.status === 'active');
     if (alreadyOwned) return;
 
@@ -94,7 +93,6 @@ export default function AiRobots() {
         setWithdrawableBalance(updates.withdrawable_balance);
       }
 
-      // Update Profile Balance
       const { error: profileError } = await supabase
         .from('profiles')
         .update(updates)
@@ -102,7 +100,6 @@ export default function AiRobots() {
 
       if (profileError) throw profileError;
 
-      // Grant the Robot
       const { error: purchaseError } = await supabase
         .from('user_robots')
         .insert({
@@ -113,13 +110,12 @@ export default function AiRobots() {
           cycle_days: robot.cycle,
           status: 'active',
           plan_type: robot.plan_type,
-          is_granted: false, // 🚨 Ensures it counts as a real purchase in the Admin Panel
+          is_granted: false, 
           last_payout: new Date().toISOString()
         });
 
       if (purchaseError) throw purchaseError;
 
-      // Add to local state so button changes instantly
       setUserRobots(prev => [...prev, { robot_name: robot.name, status: 'active' }]);
       alert(`Successfully ${actionText === 'buy' ? 'activated' : 'locked in'} ${robot.name}!`);
 
@@ -130,7 +126,6 @@ export default function AiRobots() {
     }
   };
 
-  // 🚨 FIXED: When activeTab is 'All', it returns every single robot
   const filteredRobots = robots.filter(bot => activeTab === 'All' || bot.category === activeTab);
 
   if (loading) return <div style={{ color: '#00ff41', padding: '50px', textAlign: 'center', backgroundColor: '#050505', minHeight: '100vh' }}>Loading Robots...</div>;
@@ -139,8 +134,10 @@ export default function AiRobots() {
     <div style={{ padding: '20px 15px', backgroundColor: '#050505', minHeight: '100vh', color: 'white' }}>
       
       {/* Header */}
-      <div style={{ marginBottom: '20px' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '20px' }}>
         <h1 style={{ fontFamily: 'Playfair Display, serif', fontSize: '1.8rem', color: '#00ff41', margin: 0 }}>AI Robots</h1>
+        {/* 🚨 COUNTER ADDED HERE */}
+        <span style={{ fontSize: '0.8rem', color: '#559955' }}>Showing {filteredRobots.length} Robots</span>
       </div>
 
       {/* Tabs */}
@@ -164,7 +161,7 @@ export default function AiRobots() {
         ))}
       </div>
 
-      {/* Robot List (Vertical Layout) */}
+      {/* Robot List */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '25px' }}>
         {filteredRobots.map((bot: any) => {
           const ownedRobot = userRobots.find(r => r.robot_name === bot.name && r.status === 'active');
@@ -173,21 +170,17 @@ export default function AiRobots() {
           return (
             <div key={bot.id} style={{ background: '#0a1c0a', border: '1px solid #1a3c1a', borderRadius: '16px', padding: '15px', display: 'flex', flexDirection: 'column', boxShadow: '0 4px 15px rgba(0,0,0,0.5)' }}>
               
-              {/* Large Image */}
               <div style={{ height: '200px', background: '#000', borderRadius: '12px', marginBottom: '15px', overflow: 'hidden', position: 'relative' }}>
                 <img src={bot.image} alt={bot.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                 
-                {/* Plan Type Badge */}
                 <div style={{ position: 'absolute', top: '10px', right: '10px', background: bot.plan_type === 'daily' ? 'rgba(0, 255, 65, 0.2)' : 'rgba(255, 165, 0, 0.2)', border: `1px solid ${bot.plan_type === 'daily' ? '#00ff41' : '#ffa500'}`, color: bot.plan_type === 'daily' ? '#00ff41' : '#ffa500', padding: '4px 10px', borderRadius: '20px', fontSize: '0.7rem', fontWeight: 'bold', textTransform: 'uppercase', backdropFilter: 'blur(4px)' }}>
                   {bot.plan_type === 'daily' ? 'Daily Plan' : 'Locked Plan'}
                 </div>
               </div>
               
-              {/* Title & Model */}
               <h4 style={{ margin: '0 0 5px 0', fontSize: '1.4rem', color: '#00ff41', fontFamily: 'Playfair Display, serif' }}>{bot.name}</h4>
               <p style={{ fontSize: '0.85rem', color: '#559955', margin: '0 0 15px 0' }}>{bot.model}</p>
               
-              {/* Detailed Stats Grid */}
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '10px', background: '#000', padding: '15px 10px', borderRadius: '10px', marginBottom: '20px', textAlign: 'center' }}>
                 <div>
                   <div style={{ fontSize: '0.65rem', color: '#559955', textTransform: 'uppercase' }}>Price</div>
@@ -207,7 +200,6 @@ export default function AiRobots() {
                 </div>
               </div>
 
-              {/* Action Button */}
               <button 
                 onClick={() => handleBuyRobot(bot)}
                 disabled={processingId === bot.id || isOwned}
@@ -232,4 +224,4 @@ export default function AiRobots() {
       </div>
     </div>
   );
-                                        }
+          }
