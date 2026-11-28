@@ -25,7 +25,6 @@ export async function POST(request: Request) {
     const body = JSON.parse(rawBody);
     console.log('TavuPay Webhook Received:', body.event);
 
-    // UPDATED: Listen for 'payment.successful' as well
     if (
       body.event === 'collection.success' || 
       body.event === 'collection.failed' ||
@@ -34,28 +33,29 @@ export async function POST(request: Request) {
     ) {
       const transaction = body.data;
       
-      // Handle potential differences in how the status and ref are sent
       const status = transaction.transactionStatus || transaction.status;
-      const tavuReference = transaction.transactionSystemId || transaction.reference;
+      
+      // THIS IS THE FIX: 
+      // We look for transactionExternalReference first (which is your frontend UUID)
+      // If it's missing, we fall back to the TavuPay reference.
+      const searchReference = transaction.transactionExternalReference || transaction.transactionSystemId || transaction.reference;
       
       const supabase = await createClient();
 
-      // Check if the status means it succeeded
       if (status === 'SUCCEEDED' || status === 'successful' || body.event === 'payment.successful') {
         
-        // 1. Find the pending deposit
+        // 1. Find the pending deposit using the external reference (UUID)
         const { data: deposit, error: fetchError } = await supabase
           .from('pending_deposits')
           .select('user_id, amount_usd, status')
-          .eq('txid', tavuReference)
+          .eq('txid', searchReference)
           .single();
 
         if (fetchError || !deposit) {
-          console.error('Deposit not found for reference:', tavuReference, fetchError);
+          console.error('Deposit not found for reference:', searchReference, fetchError);
           return new NextResponse(null, { status: 200 });
         }
 
-        // Prevent double crediting
         if (deposit.status === 'success') {
             console.log('Deposit already processed.');
             return new NextResponse(null, { status: 200 });
@@ -65,7 +65,7 @@ export async function POST(request: Request) {
         await supabase
           .from('pending_deposits')
           .update({ status: 'success' })
-          .eq('txid', tavuReference);
+          .eq('txid', searchReference);
 
         // 3. Fetch current profile
         const { data: profile, error: profileError } = await supabase
@@ -100,9 +100,9 @@ export async function POST(request: Request) {
         await supabase
           .from('pending_deposits')
           .update({ status: 'failed' })
-          .eq('txid', tavuReference);
+          .eq('txid', searchReference);
         
-        console.log(`Payment ${tavuReference} failed`);
+        console.log(`Payment ${searchReference} failed`);
       }
     }
 
