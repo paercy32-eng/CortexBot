@@ -24,22 +24,17 @@ export default function Deposit() {
 
   const checkPaymentStatus = async (transactionId: string) => {
     try {
-      // Updated to GET request for TavuPay
       const res = await fetch(`/api/tavupay-verify?reference=${transactionId}`, {
         method: 'GET',
       });
       
       const data = await res.json();
       
-      // TavuPay returns { ok: true, status: "successful" } on success
       if (data.ok && (data.status === 'successful' || data.status === 'SUCCEEDED')) {
         if (pollingRef.current) clearInterval(pollingRef.current);
         setVerifying(false);
         setIsSuccess(true);
         setMessage('Deposit successful! Your balance has been updated.');
-        
-        // Optional: You can update your Supabase 'pending_deposits' table here to 'success'
-        // await supabase.from('pending_deposits').update({ status: 'success' }).eq('txid', transactionId);
       }
     } catch (err) {
       console.error("Error checking status:", err);
@@ -52,7 +47,6 @@ export default function Deposit() {
     setIsSuccess(false);
 
     const depositAmount = Number(amount);
-    // 🚨 MINIMUM DEPOSIT UPDATED TO 500 FOR TESTING
     if (!depositAmount || depositAmount < 500) {
       setMessage('Minimum deposit is 500 UGX.');
       return;
@@ -64,8 +58,6 @@ export default function Deposit() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Please log in first.");
 
-      // This UUID acts as our idempotency key. 
-      // The TavuPay webhook will echo this back as transactionExternalReference
       const orderId = crypto.randomUUID(); 
 
       const res = await fetch('/api/tavupay-deposit', {
@@ -77,13 +69,13 @@ export default function Deposit() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Failed to initiate payment");
 
-      // TavuPay returns the transaction reference as 'reference' (e.g. C012345...)
-      const tavuPayTxId = data.reference;
+      // SAVE TAVUPAY'S REFERENCE TO DATABASE
+      const tavuPayTxId = data.reference; 
 
       const { error: dbError } = await supabase.from('pending_deposits').insert({
         user_id: user.id,
         txid: tavuPayTxId, 
-        amount_usd: depositAmount, // Note: Field is named amount_usd, but you are passing UGX. You might want to rename this column later.
+        amount_usd: depositAmount, 
         status: 'pending'
       });
 
@@ -93,7 +85,6 @@ export default function Deposit() {
       setVerifying(true);
       setLoading(false);
 
-      // Start polling
       checkPaymentStatus(tavuPayTxId);
       pollingRef.current = setInterval(() => checkPaymentStatus(tavuPayTxId), 5000);
 
@@ -124,7 +115,6 @@ export default function Deposit() {
   return (
     <div style={{ padding: '20px 15px', backgroundColor: '#050505', minHeight: '100vh', color: 'white', display: 'flex', flexDirection: 'column' }}>
       
-      {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', marginBottom: '30px' }}>
         <button onClick={() => router.push('/')} style={{ background: 'none', border: 'none', color: '#00ff41', fontSize: '1.5rem', cursor: 'pointer', marginRight: '15px' }}>
           ←
@@ -132,7 +122,6 @@ export default function Deposit() {
         <h1 style={{ fontFamily: 'Playfair Display, serif', fontSize: '1.5rem', margin: 0, color: '#fff' }}>Deposit Funds</h1>
       </div>
 
-      {/* Form Container */}
       <div style={{ background: '#0a1c0a', border: '1px solid #1a3c1a', borderRadius: '15px', padding: '20px' }}>
         <form onSubmit={handleDeposit}>
           
@@ -173,7 +162,6 @@ export default function Deposit() {
           </button>
         </form>
 
-        {/* Status Message */}
         {message && (
           <div style={{ marginTop: '20px', padding: '15px', borderRadius: '8px', background: message.includes('Error') || message.includes('Minimum') ? 'rgba(255, 0, 0, 0.1)' : 'rgba(0, 255, 65, 0.1)', border: `1px solid ${message.includes('Error') || message.includes('Minimum') ? '#ff4444' : '#00ff41'}`, color: message.includes('Error') || message.includes('Minimum') ? '#ff4444' : '#00ff41', fontSize: '0.9rem', textAlign: 'center' }}>
             {verifying && (
@@ -194,4 +182,4 @@ export default function Deposit() {
       `}</style>
     </div>
   );
-}
+      }
