@@ -69,11 +69,12 @@ export default function Perfumes() {
     let balanceName = isFirstPurchase ? 'Approved Deposit Balance' : 'Withdrawable Balance';
 
     if (currentBalanceToUse < perfume.price) {
-      alert(`Insufficient ${balanceName}!\n\nYou need ${perfume.price.toLocaleString()} UGX to proceed.`);
+      alert(`Insufficient ${balanceName}!\n\nYou need ${perfume.price.toLocaleString()} UGX to proceed.\n\n${isFirstPurchase ? 'Your first purchase must be fully funded by approved deposits.' : 'You cannot use locked AI income or deposit funds for subsequent purchases.'}`);
       return;
     }
 
-    if (!confirm(`Are you sure you want to buy ${perfume.name} for ${perfume.price.toLocaleString()} UGX?`)) return;
+    const actionText = perfume.plan_type === 'daily' ? 'buy' : 'lock in';
+    if (!confirm(`Are you sure you want to ${actionText} ${perfume.name} for ${perfume.price.toLocaleString()} UGX?`)) return;
 
     setProcessingId(perfume.id);
 
@@ -101,13 +102,18 @@ export default function Perfumes() {
           user_id: user.id,
           perfume_name: perfume.name,
           price_paid: perfume.price,
+          daily_income: perfume.daily,
+          cycle_days: perfume.cycle,
           status: 'active',
+          plan_type: perfume.plan_type,
+          is_granted: false, 
+          last_payout: new Date().toISOString()
         });
 
       if (purchaseError) throw purchaseError;
 
       setUserPerfumes(prev => [...prev, { perfume_name: perfume.name, status: 'active' }]);
-      alert(`Successfully purchased ${perfume.name}!`);
+      alert(`Successfully ${actionText === 'buy' ? 'activated' : 'locked in'} ${perfume.name}!`);
 
     } catch (error: any) {
       alert("Error processing request: " + error.message);
@@ -162,18 +168,31 @@ export default function Perfumes() {
               <div style={{ height: '200px', background: '#000', borderRadius: '12px', marginBottom: '15px', overflow: 'hidden', position: 'relative' }}>
                 <img src={perfume.image} alt={perfume.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                 
-                <div style={{ position: 'absolute', top: '10px', right: '10px', background: 'rgba(0, 255, 65, 0.2)', border: '1px solid #00ff41', color: '#00ff41', padding: '4px 10px', borderRadius: '20px', fontSize: '0.7rem', fontWeight: 'bold', textTransform: 'uppercase', backdropFilter: 'blur(4px)' }}>
-                  {perfume.category}
+                <div style={{ position: 'absolute', top: '10px', right: '10px', background: perfume.plan_type === 'daily' ? 'rgba(0, 255, 65, 0.2)' : 'rgba(255, 165, 0, 0.2)', border: `1px solid ${perfume.plan_type === 'daily' ? '#00ff41' : '#ffa500'}`, color: perfume.plan_type === 'daily' ? '#00ff41' : '#ffa500', padding: '4px 10px', borderRadius: '20px', fontSize: '0.7rem', fontWeight: 'bold', textTransform: 'uppercase', backdropFilter: 'blur(4px)' }}>
+                  {perfume.plan_type === 'daily' ? 'Daily Plan' : 'Locked Plan'}
                 </div>
               </div>
               
               <h4 style={{ margin: '0 0 5px 0', fontSize: '1.4rem', color: '#00ff41', fontFamily: 'Playfair Display, serif' }}>{perfume.name}</h4>
               <p style={{ fontSize: '0.85rem', color: '#559955', margin: '0 0 15px 0' }}>{perfume.brand}</p>
               
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '10px', background: '#000', padding: '15px 10px', borderRadius: '10px', marginBottom: '20px', textAlign: 'center' }}>
+              {/* RESTORED THE 4-COLUMN GRID */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '10px', background: '#000', padding: '15px 10px', borderRadius: '10px', marginBottom: '20px', textAlign: 'center' }}>
                 <div>
                   <div style={{ fontSize: '0.65rem', color: '#559955', textTransform: 'uppercase' }}>Price</div>
-                  <div style={{ fontSize: '1.2rem', color: '#fff', fontWeight: 'bold' }}>UGX {Number(perfume.price).toLocaleString()}</div>
+                  <div style={{ fontSize: '0.9rem', color: '#fff', fontWeight: 'bold' }}>{Number(perfume.price).toLocaleString()}</div>
+                </div>
+                <div>
+                  <div style={{ fontSize: '0.65rem', color: '#559955', textTransform: 'uppercase' }}>Daily</div>
+                  <div style={{ fontSize: '0.9rem', color: '#00ff41', fontWeight: 'bold' }}>{Number(perfume.daily).toLocaleString()}</div>
+                </div>
+                <div>
+                  <div style={{ fontSize: '0.65rem', color: '#559955', textTransform: 'uppercase' }}>Cycle</div>
+                  <div style={{ fontSize: '0.9rem', color: '#fff', fontWeight: 'bold' }}>{perfume.cycle} Days</div>
+                </div>
+                <div>
+                  <div style={{ fontSize: '0.65rem', color: '#559955', textTransform: 'uppercase' }}>Total</div>
+                  <div style={{ fontSize: '0.9rem', color: '#00ff41', fontWeight: 'bold' }}>{Number(perfume.total).toLocaleString()}</div>
                 </div>
               </div>
 
@@ -192,8 +211,8 @@ export default function Perfumes() {
                 {processingId === perfume.id 
                   ? 'Processing...' 
                   : isOwned 
-                    ? 'Purchased' 
-                    : 'Buy Now'}
+                    ? (perfume.plan_type === 'daily' ? 'Active' : 'Locked in') 
+                    : (perfume.plan_type === 'daily' ? 'Buy' : 'Lock in')}
               </button>
             </div>
           );
