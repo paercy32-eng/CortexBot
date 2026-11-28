@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import crypto from 'crypto';
+import { createClient } from '@/utils/supabase/server'; // Make sure this path matches your project
 
 export async function POST(request: Request) {
   try {
@@ -33,17 +34,40 @@ export async function POST(request: Request) {
       const transaction = body.data;
       
       const status = transaction.transactionStatus; // "SUCCEEDED" or "FAILED"
-      const reference = transaction.transactionSystemId; // EPY211001492
-      const externalRef = transaction.transactionExternalReference; // Your orderId
-      const amount = Number(transaction.amount);
+      const tavuReference = transaction.transactionSystemId; // EPY211001492
+      
+      // Initialize Supabase (server-side)
+      const supabase = await createClient();
 
       if (status === 'SUCCEEDED') {
-        // TODO: Update your database here!
-        // await db.transaction.update({ where: { id: externalRef }, data: { status: 'SUCCESS' } });
-        console.log(`Payment ${reference} succeeded for ${amount} UGX`);
+        // Step A: Update the pending_deposits table to 'success'
+        const { error: depositError } = await supabase
+          .from('pending_deposits')
+          .update({ status: 'success' })
+          .eq('txid', tavuReference);
+
+        if (depositError) {
+          console.error('Failed to update pending deposit:', depositError);
+        }
+
+        // Step B: You need to credit the user's balance here.
+        // This depends on your DB structure. Example:
+        // 1. Fetch the deposit to get the user_id and amount
+        // 2. Add the amount to the user's profile/wallet table
+        
+        console.log(`Payment ${tavuReference} succeeded for ${transaction.amount} UGX`);
       } else if (status === 'FAILED') {
-        // TODO: Update your database here!
-        console.log(`Payment ${reference} failed`);
+        // Update the pending_deposits table to 'failed'
+        const { error: failError } = await supabase
+          .from('pending_deposits')
+          .update({ status: 'failed' })
+          .eq('txid', tavuReference);
+
+        if (failError) {
+          console.error('Failed to update failed deposit:', failError);
+        }
+        
+        console.log(`Payment ${tavuReference} failed`);
       }
     }
 
