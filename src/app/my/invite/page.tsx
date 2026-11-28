@@ -34,9 +34,8 @@ export default function InvitePage() {
       if (profile && profile.referral_code) {
         setReferralCode(profile.referral_code);
         
-        // Use the environment variable, or fallback to the current origin
-        const baseUrl = process.env.NEXT_PUBLIC_APP_URL || window.location.origin;
-        setReferralLink(`${baseUrl}/register?ref=${profile.referral_code}`);
+        // 🚨 UPDATED: Using vortexgain.com
+        setReferralLink(`https://vortexgain.com/register?ref=${profile.referral_code}`);
       }
 
       // 2. Fetch all users directly referred by this user
@@ -99,7 +98,7 @@ export default function InvitePage() {
         {/* Rules Notice */}
         <div style={{ border: '1px solid #D4AF37', borderRadius: '12px', padding: '15px', textAlign: 'center', backgroundColor: 'rgba(212, 175, 55, 0.05)', marginBottom: '20px' }}>
           <p style={{ margin: 0, fontFamily: 'Playfair Display, serif', fontSize: '0.9rem', lineHeight: '1.5', color: '#ccc' }}>
-            Earn <strong style={{color: '#D4AF37'}}>12% commission</strong> on every deposit made by your direct Level 1 referrals.
+            Earn <strong style={{color: '#D4AF37'}}>20% commission</strong> on every deposit made by your direct Level 1 referrals.
           </p>
         </div>
 
