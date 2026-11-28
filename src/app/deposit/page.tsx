@@ -96,15 +96,15 @@ export default function Deposit() {
 
   if (isSuccess) {
     return (
-      <div style={{ backgroundColor: '#050505', minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '20px', color: 'white' }}>
-        <div style={{ width: '80px', height: '80px', borderRadius: '50%', backgroundColor: 'rgba(0, 255, 65, 0.1)', border: '2px solid #00ff41', display: 'flex', justifyContent: 'center', alignItems: 'center', marginBottom: '20px' }}>
-          <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#00ff41" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+      <div style={{ backgroundColor: '#0a0a0a', minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '20px', color: 'white' }}>
+        <div style={{ width: '80px', height: '80px', borderRadius: '50%', backgroundColor: 'rgba(212, 175, 55, 0.1)', border: '2px solid #D4AF37', display: 'flex', justifyContent: 'center', alignItems: 'center', marginBottom: '20px' }}>
+          <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#D4AF37" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
         </div>
-        <h2 style={{ fontFamily: 'Playfair Display, serif', fontSize: '1.8rem', marginBottom: '10px', color: '#00ff41' }}>Deposit Successful</h2>
-        <p style={{ color: '#559955', marginBottom: '30px', textAlign: 'center' }}>{message}</p>
+        <h2 style={{ fontFamily: 'Playfair Display, serif', fontSize: '1.8rem', marginBottom: '10px', color: '#D4AF37' }}>Deposit Successful</h2>
+        <p style={{ color: '#aaa', marginBottom: '30px', textAlign: 'center' }}>{message}</p>
         <button 
           onClick={() => router.push('/')}
-          style={{ background: '#00ff41', color: '#000', padding: '15px 40px', borderRadius: '30px', fontWeight: 'bold', border: 'none', cursor: 'pointer' }}
+          style={{ background: '#D4AF37', color: '#000', padding: '15px 40px', borderRadius: '30px', fontWeight: 'bold', border: 'none', cursor: 'pointer' }}
         >
           Return Home
         </button>
@@ -113,40 +113,40 @@ export default function Deposit() {
   }
 
   return (
-    <div style={{ padding: '20px 15px', backgroundColor: '#050505', minHeight: '100vh', color: 'white', display: 'flex', flexDirection: 'column' }}>
+    <div style={{ padding: '20px 15px', backgroundColor: '#0a0a0a', minHeight: '100vh', color: 'white', display: 'flex', flexDirection: 'column' }}>
       
       <div style={{ display: 'flex', alignItems: 'center', marginBottom: '30px' }}>
-        <button onClick={() => router.push('/')} style={{ background: 'none', border: 'none', color: '#00ff41', fontSize: '1.5rem', cursor: 'pointer', marginRight: '15px' }}>
+        <button onClick={() => router.push('/')} style={{ background: 'none', border: 'none', color: '#D4AF37', fontSize: '1.5rem', cursor: 'pointer', marginRight: '15px' }}>
           ←
         </button>
-        <h1 style={{ fontFamily: 'Playfair Display, serif', fontSize: '1.5rem', margin: 0, color: '#fff' }}>Deposit Funds</h1>
+        <h1 style={{ fontFamily: 'Playfair Display, serif', fontSize: '1.5rem', margin: 0, color: '#D4AF37' }}>Deposit Funds</h1>
       </div>
 
-      <div style={{ background: '#0a1c0a', border: '1px solid #1a3c1a', borderRadius: '15px', padding: '20px' }}>
+      <div style={{ background: '#111', border: '1px solid #222', borderRadius: '15px', padding: '20px' }}>
         <form onSubmit={handleDeposit}>
           
-          <label style={{ display: 'block', fontSize: '0.8rem', color: '#559955', marginBottom: '8px' }}>Amount (UGX)</label>
+          <label style={{ display: 'block', fontSize: '0.8rem', color: '#888', marginBottom: '8px' }}>Amount (UGX)</label>
           <input 
             type="number" 
             value={amount}
             onChange={(e) => setAmount(e.target.value)}
-            placeholder="Min 500"
+            placeholder=""
             min="500"
             required
             disabled={verifying}
-            style={{ width: '100%', padding: '15px', borderRadius: '8px', border: '1px solid #1a3c1a', background: '#000', color: '#fff', fontSize: '1rem', marginBottom: '5px' }}
+            style={{ width: '100%', padding: '15px', borderRadius: '8px', border: '1px solid #333', background: '#0a0a0a', color: '#fff', fontSize: '1rem', marginBottom: '5px', outline: 'none' }}
           />
-          <p style={{ fontSize: '0.75rem', color: '#559955', margin: '0 0 20px 0' }}>Minimum deposit: 500 UGX</p>
+          <p style={{ fontSize: '0.75rem', color: '#666', margin: '0 0 20px 0' }}>Minimum deposit: 500 UGX</p>
 
-          <label style={{ display: 'block', fontSize: '0.8rem', color: '#559955', marginBottom: '8px' }}>Phone Number (MTN or Airtel)</label>
+          <label style={{ display: 'block', fontSize: '0.8rem', color: '#888', marginBottom: '8px' }}>Phone Number (MTN or Airtel)</label>
           <input 
             type="tel" 
             value={phone}
             onChange={(e) => setPhone(e.target.value)}
-            placeholder="e.g. 0770000000"
+            placeholder=""
             required
             disabled={verifying}
-            style={{ width: '100%', padding: '15px', borderRadius: '8px', border: '1px solid #1a3c1a', background: '#000', color: '#fff', fontSize: '1rem', marginBottom: '20px' }}
+            style={{ width: '100%', padding: '15px', borderRadius: '8px', border: '1px solid #333', background: '#0a0a0a', color: '#fff', fontSize: '1rem', marginBottom: '20px', outline: 'none' }}
           />
 
           <button 
@@ -154,7 +154,7 @@ export default function Deposit() {
             disabled={loading || verifying}
             style={{ 
               width: '100%', padding: '15px', borderRadius: '8px', border: 'none', 
-              background: '#00ff41', color: '#000', fontWeight: 'bold', fontSize: '1rem', 
+              background: '#D4AF37', color: '#000', fontWeight: 'bold', fontSize: '1rem', 
               cursor: (loading || verifying) ? 'not-allowed' : 'pointer', opacity: (loading || verifying) ? 0.6 : 1
             }}
           >
@@ -163,7 +163,7 @@ export default function Deposit() {
         </form>
 
         {message && (
-          <div style={{ marginTop: '20px', padding: '15px', borderRadius: '8px', background: message.includes('Error') || message.includes('Minimum') ? 'rgba(255, 0, 0, 0.1)' : 'rgba(0, 255, 65, 0.1)', border: `1px solid ${message.includes('Error') || message.includes('Minimum') ? '#ff4444' : '#00ff41'}`, color: message.includes('Error') || message.includes('Minimum') ? '#ff4444' : '#00ff41', fontSize: '0.9rem', textAlign: 'center' }}>
+          <div style={{ marginTop: '20px', padding: '15px', borderRadius: '8px', background: message.includes('Error') || message.includes('Minimum') ? 'rgba(255, 0, 0, 0.1)' : 'rgba(212, 175, 55, 0.1)', border: `1px solid ${message.includes('Error') || message.includes('Minimum') ? '#ff4444' : '#D4AF37'}`, color: message.includes('Error') || message.includes('Minimum') ? '#ff4444' : '#D4AF37', fontSize: '0.9rem', textAlign: 'center' }}>
             {verifying && (
               <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '10px' }}>
                 <svg className="spinner" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -182,4 +182,4 @@ export default function Deposit() {
       `}</style>
     </div>
   );
-      }
+}
