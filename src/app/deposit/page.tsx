@@ -35,6 +35,9 @@ export default function Deposit() {
         setVerifying(false);
         setIsSuccess(true);
         setMessage('Deposit successful! Your balance has been updated.');
+        
+        // 🚨 Force a router refresh to clear the "Pending" state in history
+        router.refresh(); 
       }
     } catch (err) {
       console.error("Error checking status:", err);
@@ -60,6 +63,7 @@ export default function Deposit() {
 
       const orderId = crypto.randomUUID(); 
 
+      // The API route will handle adding the 2% fee before sending to TavuPay
       const res = await fetch('/api/tavupay-deposit', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -69,13 +73,13 @@ export default function Deposit() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Failed to initiate payment");
 
-      // SAVE TAVUPAY'S REFERENCE TO DATABASE
       const tavuPayTxId = data.reference; 
 
+      // 🚨 SAVE THE BASE AMOUNT (e.g., 20000) TO DATABASE
       const { error: dbError } = await supabase.from('pending_deposits').insert({
         user_id: user.id,
         txid: tavuPayTxId, 
-        amount_usd: depositAmount, 
+        amount_usd: depositAmount, // This is the original amount, not the one with the 2% fee
         status: 'pending'
       });
 
@@ -136,7 +140,7 @@ export default function Deposit() {
             disabled={verifying}
             style={{ width: '100%', padding: '15px', borderRadius: '8px', border: '1px solid #333', background: '#0a0a0a', color: '#fff', fontSize: '1rem', marginBottom: '5px', outline: 'none' }}
           />
-          <p style={{ fontSize: '0.75rem', color: '#666', margin: '0 0 20px 0' }}>Minimum deposit: 500 UGX</p>
+          <p style={{ fontSize: '0.75rem', color: '#666', margin: '0 0 20px 0' }}>Minimum deposit: 500 UGX (A 2% network fee applies)</p>
 
           <label style={{ display: 'block', fontSize: '0.8rem', color: '#888', marginBottom: '8px' }}>Phone Number (MTN or Airtel)</label>
           <input 
