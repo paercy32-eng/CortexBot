@@ -25,14 +25,23 @@ export async function POST(request: Request) {
     const body = JSON.parse(rawBody);
     console.log('TavuPay Webhook Received:', body.event);
 
-    if (body.event === 'collection.success' || body.event === 'collection.failed') {
+    // UPDATED: Listen for 'payment.successful' as well
+    if (
+      body.event === 'collection.success' || 
+      body.event === 'collection.failed' ||
+      body.event === 'payment.successful' ||
+      body.event === 'payment.failed'
+    ) {
       const transaction = body.data;
-      const status = transaction.transactionStatus;
-      const tavuReference = transaction.transactionSystemId;
+      
+      // Handle potential differences in how the status and ref are sent
+      const status = transaction.transactionStatus || transaction.status;
+      const tavuReference = transaction.transactionSystemId || transaction.reference;
       
       const supabase = await createClient();
 
-      if (status === 'SUCCEEDED') {
+      // Check if the status means it succeeded
+      if (status === 'SUCCEEDED' || status === 'successful' || body.event === 'payment.successful') {
         
         // 1. Find the pending deposit
         const { data: deposit, error: fetchError } = await supabase
@@ -46,19 +55,19 @@ export async function POST(request: Request) {
           return new NextResponse(null, { status: 200 });
         }
 
-        // Prevent double crediting if webhook fires twice
+        // Prevent double crediting
         if (deposit.status === 'success') {
             console.log('Deposit already processed.');
             return new NextResponse(null, { status: 200 });
         }
 
-        // 2. Update the pending_deposits table to 'success'
+        // 2. Update the pending_deposits table
         await supabase
           .from('pending_deposits')
           .update({ status: 'success' })
           .eq('txid', tavuReference);
 
-        // 3. Fetch current profile balances to calculate the new totals
+        // 3. Fetch current profile
         const { data: profile, error: profileError } = await supabase
           .from('profiles')
           .select('balance_usd, total_deposited')
@@ -70,7 +79,7 @@ export async function POST(request: Request) {
           const currentTotalDeposited = Number(profile.total_deposited) || 0;
           const depositAmount = Number(deposit.amount_usd) || 0;
 
-          // 4. Update the user's profile with the new balances
+          // 4. Update the profile balance
           const { error: updateError } = await supabase
             .from('profiles')
             .update({ 
@@ -86,7 +95,8 @@ export async function POST(request: Request) {
           }
         }
 
-      } else if (status === 'FAILED') {
+      } else {
+        // Handle failures
         await supabase
           .from('pending_deposits')
           .update({ status: 'failed' })
