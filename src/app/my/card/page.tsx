@@ -71,17 +71,17 @@ export default function BindCard() {
     }
   };
 
-  if (loading) return <div style={{ color: 'white', padding: '20px', textAlign: 'center' }}>Loading...</div>;
+  if (loading) return <div style={{ color: '#D4AF37', padding: '20px', textAlign: 'center', backgroundColor: '#0a0a0a', minHeight: '100vh' }}>Loading...</div>;
 
   return (
-    <div style={{ backgroundColor: '#000', minHeight: '100vh', color: 'white', paddingBottom: '20px' }}>
+    <div style={{ backgroundColor: '#0a0a0a', minHeight: '100vh', color: 'white', paddingBottom: '20px' }}>
       
       {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'center', padding: '20px 15px', borderBottom: '1px solid #333' }}>
-        <button onClick={() => router.push('/my')} style={{ background: 'none', border: 'none', color: '#00bfff', cursor: 'pointer', marginRight: '15px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', padding: '20px 15px', borderBottom: '1px solid #222' }}>
+        <button onClick={() => router.push('/my')} style={{ background: 'none', border: 'none', color: '#D4AF37', cursor: 'pointer', marginRight: '15px' }}>
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
         </button>
-        <h1 style={{ fontFamily: 'Playfair Display, serif', fontSize: '1.5rem', margin: 0, color: '#00bfff', flex: 1, textAlign: 'center' }}>
+        <h1 style={{ fontFamily: 'Playfair Display, serif', fontSize: '1.5rem', margin: 0, color: '#D4AF37', flex: 1, textAlign: 'center' }}>
           Bind Account
         </h1>
         <div style={{ width: '24px' }}></div>
@@ -108,7 +108,7 @@ export default function BindCard() {
                 value={fullName}
                 onChange={(e) => setFullName(e.target.value)}
                 required
-                style={{ width: '100%', padding: '18px 18px 18px 45px', backgroundColor: 'transparent', border: '1px solid #00bfff', borderRadius: '30px', color: 'white', fontSize: '1rem', outline: 'none' }}
+                style={{ width: '100%', padding: '18px 18px 18px 45px', backgroundColor: '#111', border: '1px solid #333', borderRadius: '30px', color: 'white', fontSize: '1rem', outline: 'none' }}
               />
             </div>
           </div>
@@ -126,14 +126,14 @@ export default function BindCard() {
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
                 required
-                style={{ width: '100%', padding: '18px 18px 18px 45px', backgroundColor: 'transparent', border: '1px solid #00bfff', borderRadius: '30px', color: 'white', fontSize: '1rem', outline: 'none' }}
+                style={{ width: '100%', padding: '18px 18px 18px 45px', backgroundColor: '#111', border: '1px solid #333', borderRadius: '30px', color: 'white', fontSize: '1rem', outline: 'none' }}
               />
             </div>
           </div>
 
           {/* Status Message */}
           {message && (
-            <div style={{ padding: '15px', borderRadius: '8px', textAlign: 'center', fontSize: '0.9rem', backgroundColor: isError ? 'rgba(255,0,0,0.1)' : 'rgba(0,255,0,0.1)', color: isError ? '#ff4444' : '#00ff00' }}>
+            <div style={{ padding: '15px', borderRadius: '8px', textAlign: 'center', fontSize: '0.9rem', backgroundColor: isError ? 'rgba(255,0,0,0.1)' : 'rgba(212, 175, 55, 0.1)', color: isError ? '#ff4444' : '#D4AF37' }}>
               {message}
             </div>
           )}
@@ -144,10 +144,10 @@ export default function BindCard() {
             disabled={saving}
             style={{ 
               padding: '18px', marginTop: '10px',
-              backgroundColor: 'transparent', border: '1px solid #00bfff', 
-              borderRadius: '30px', color: '#00bfff', fontSize: '1.1rem', 
+              backgroundColor: '#D4AF37', border: 'none', 
+              borderRadius: '30px', color: '#000', fontSize: '1.1rem', 
               fontFamily: 'Playfair Display, serif', cursor: saving ? 'not-allowed' : 'pointer', 
-              boxShadow: '0 0 15px rgba(0, 191, 255, 0.3)' 
+              fontWeight: 'bold'
             }}
           >
             {saving ? 'Saving...' : 'Save Account Details'}
@@ -156,4 +156,4 @@ export default function BindCard() {
       </div>
     </div>
   );
-                         }
+}
