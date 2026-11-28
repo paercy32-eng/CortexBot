@@ -24,19 +24,22 @@ export default function Deposit() {
 
   const checkPaymentStatus = async (transactionId: string) => {
     try {
-      const res = await fetch('/api/pesajet-verify', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ reference: transactionId }),
+      // Updated to GET request for TavuPay
+      const res = await fetch(`/api/tavupay-verify?reference=${transactionId}`, {
+        method: 'GET',
       });
       
       const data = await res.json();
       
-      if (data.success) {
+      // TavuPay returns { ok: true, status: "successful" } on success
+      if (data.ok && (data.status === 'successful' || data.status === 'SUCCEEDED')) {
         if (pollingRef.current) clearInterval(pollingRef.current);
         setVerifying(false);
         setIsSuccess(true);
         setMessage('Deposit successful! Your balance has been updated.');
+        
+        // Optional: You can update your Supabase 'pending_deposits' table here to 'success'
+        // await supabase.from('pending_deposits').update({ status: 'success' }).eq('txid', transactionId);
       }
     } catch (err) {
       console.error("Error checking status:", err);
@@ -49,9 +52,9 @@ export default function Deposit() {
     setIsSuccess(false);
 
     const depositAmount = Number(amount);
-    // 🚨 MINIMUM DEPOSIT UPDATED TO 20,000
-    if (!depositAmount || depositAmount < 20000) {
-      setMessage('Minimum deposit is 20,000 UGX.');
+    // 🚨 MINIMUM DEPOSIT UPDATED TO 500 FOR TESTING
+    if (!depositAmount || depositAmount < 500) {
+      setMessage('Minimum deposit is 500 UGX.');
       return;
     }
 
@@ -61,23 +64,26 @@ export default function Deposit() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Please log in first.");
 
-      const reference = crypto.randomUUID();
+      // This UUID acts as our idempotency key. 
+      // The TavuPay webhook will echo this back as transactionExternalReference
+      const orderId = crypto.randomUUID(); 
 
-      const res = await fetch('/api/pesajet-deposit', {
+      const res = await fetch('/api/tavupay-deposit', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ amount: depositAmount, phone: phone, reference: reference }),
+        body: JSON.stringify({ amount: depositAmount, phone: phone, orderId: orderId }),
       });
 
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Failed to initiate payment");
 
-      const pesajetTxId = data.transactionId;
+      // TavuPay returns the transaction reference as 'reference' (e.g. C012345...)
+      const tavuPayTxId = data.reference;
 
       const { error: dbError } = await supabase.from('pending_deposits').insert({
         user_id: user.id,
-        txid: pesajetTxId, 
-        amount_usd: depositAmount,
+        txid: tavuPayTxId, 
+        amount_usd: depositAmount, // Note: Field is named amount_usd, but you are passing UGX. You might want to rename this column later.
         status: 'pending'
       });
 
@@ -87,8 +93,9 @@ export default function Deposit() {
       setVerifying(true);
       setLoading(false);
 
-      checkPaymentStatus(pesajetTxId);
-      pollingRef.current = setInterval(() => checkPaymentStatus(pesajetTxId), 5000);
+      // Start polling
+      checkPaymentStatus(tavuPayTxId);
+      pollingRef.current = setInterval(() => checkPaymentStatus(tavuPayTxId), 5000);
 
     } catch (error: any) {
       setMessage(`Error: ${error.message}`);
@@ -134,20 +141,20 @@ export default function Deposit() {
             type="number" 
             value={amount}
             onChange={(e) => setAmount(e.target.value)}
-            placeholder="Min 20,000"
-            min="20000"
+            placeholder="Min 500"
+            min="500"
             required
             disabled={verifying}
             style={{ width: '100%', padding: '15px', borderRadius: '8px', border: '1px solid #1a3c1a', background: '#000', color: '#fff', fontSize: '1rem', marginBottom: '5px' }}
           />
-          <p style={{ fontSize: '0.75rem', color: '#559955', margin: '0 0 20px 0' }}>Minimum deposit: 20,000 UGX</p>
+          <p style={{ fontSize: '0.75rem', color: '#559955', margin: '0 0 20px 0' }}>Minimum deposit: 500 UGX</p>
 
           <label style={{ display: 'block', fontSize: '0.8rem', color: '#559955', marginBottom: '8px' }}>Phone Number (MTN or Airtel)</label>
           <input 
             type="tel" 
             value={phone}
             onChange={(e) => setPhone(e.target.value)}
-            // 🚨 PLACEHOLDER REMOVED
+            placeholder="e.g. 0770000000"
             required
             disabled={verifying}
             style={{ width: '100%', padding: '15px', borderRadius: '8px', border: '1px solid #1a3c1a', background: '#000', color: '#fff', fontSize: '1rem', marginBottom: '20px' }}
@@ -187,4 +194,4 @@ export default function Deposit() {
       `}</style>
     </div>
   );
-          }
+}
