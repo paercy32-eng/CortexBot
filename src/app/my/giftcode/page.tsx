@@ -77,17 +77,17 @@ export default function RedeemGiftCode() {
   };
 
   return (
-    <div style={{ backgroundColor: '#000', minHeight: '100vh', color: 'white', padding: '20px 15px' }}>
+    <div style={{ backgroundColor: '#0a0a0a', minHeight: '100vh', color: 'white', padding: '20px 15px' }}>
       
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', marginBottom: '30px' }}>
-        <button onClick={() => router.push('/my')} style={{ background: 'none', border: 'none', color: '#00bfff', cursor: 'pointer', marginRight: '15px' }}>
+        <button onClick={() => router.push('/my')} style={{ background: 'none', border: 'none', color: '#D4AF37', cursor: 'pointer', marginRight: '15px' }}>
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
         </button>
-        <h1 style={{ fontFamily: 'Playfair Display, serif', fontSize: '1.5rem', color: '#00bfff', margin: 0 }}>Redeem Gift Code</h1>
+        <h1 style={{ fontFamily: 'Playfair Display, serif', fontSize: '1.5rem', color: '#D4AF37', margin: 0 }}>Redeem Gift Code</h1>
       </div>
 
-      <div style={{ background: '#121c2d', border: '1px solid #333', borderRadius: '15px', padding: '30px 20px', textAlign: 'center' }}>
+      <div style={{ background: '#111', border: '1px solid #333', borderRadius: '15px', padding: '30px 20px', textAlign: 'center' }}>
         
         <div style={{ fontSize: '3rem', marginBottom: '20px' }}>🎁</div>
         <h2 style={{ fontFamily: 'Playfair Display, serif', fontSize: '1.2rem', marginBottom: '10px' }}>Enter Promo Code</h2>
@@ -99,24 +99,24 @@ export default function RedeemGiftCode() {
             placeholder="Enter code here..."
             value={codeInput}
             onChange={(e) => setCodeInput(e.target.value)}
-            style={{ width: '100%', padding: '15px', borderRadius: '8px', border: '1px solid #00bfff', background: '#0a0a0a', color: '#fff', fontSize: '1.2rem', textAlign: 'center', letterSpacing: '3px', textTransform: 'uppercase', marginBottom: '20px', outline: 'none' }}
+            style={{ width: '100%', padding: '15px', borderRadius: '8px', border: '1px solid #D4AF37', background: '#0a0a0a', color: '#fff', fontSize: '1.2rem', textAlign: 'center', letterSpacing: '3px', textTransform: 'uppercase', marginBottom: '20px', outline: 'none' }}
           />
 
           <button 
             type="submit" 
             disabled={loading}
-            style={{ width: '100%', padding: '15px', borderRadius: '8px', border: 'none', background: '#00bfff', color: '#000', fontWeight: 'bold', fontSize: '1rem', cursor: loading ? 'not-allowed' : 'pointer' }}
+            style={{ width: '100%', padding: '15px', borderRadius: '8px', border: 'none', background: '#D4AF37', color: '#000', fontWeight: 'bold', fontSize: '1rem', cursor: loading ? 'not-allowed' : 'pointer' }}
           >
             {loading ? 'Redeeming...' : 'Redeem Now'}
           </button>
         </form>
 
         {message && (
-          <div style={{ marginTop: '20px', padding: '15px', borderRadius: '8px', backgroundColor: isSuccess ? 'rgba(0, 255, 0, 0.1)' : 'rgba(255, 0, 0, 0.1)', border: `1px solid ${isSuccess ? '#00ff00' : '#ff4444'}`, color: isSuccess ? '#00ff00' : '#ff4444', fontSize: '0.9rem' }}>
+          <div style={{ marginTop: '20px', padding: '15px', borderRadius: '8px', backgroundColor: isSuccess ? 'rgba(212, 175, 55, 0.1)' : 'rgba(255, 0, 0, 0.1)', border: `1px solid ${isSuccess ? '#D4AF37' : '#ff4444'}`, color: isSuccess ? '#D4AF37' : '#ff4444', fontSize: '0.9rem' }}>
             {message}
           </div>
         )}
       </div>
     </div>
   );
-                       }
+}
