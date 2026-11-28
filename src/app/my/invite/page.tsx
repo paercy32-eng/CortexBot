@@ -78,17 +78,17 @@ export default function InvitePage() {
     }
   };
 
-  if (loading) return <div style={{ color: 'white', padding: '20px', textAlign: 'center' }}>Loading...</div>;
+  if (loading) return <div style={{ color: '#D4AF37', padding: '20px', textAlign: 'center', backgroundColor: '#0a0a0a', minHeight: '100vh' }}>Loading...</div>;
 
   return (
-    <div style={{ backgroundColor: '#000', minHeight: '100vh', color: 'white', paddingBottom: '20px' }}>
+    <div style={{ backgroundColor: '#0a0a0a', minHeight: '100vh', color: 'white', paddingBottom: '20px' }}>
       
       {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'center', padding: '20px 15px', borderBottom: '1px solid #333' }}>
-        <button onClick={() => router.push('/my')} style={{ background: 'none', border: 'none', color: '#00bfff', cursor: 'pointer', marginRight: '15px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', padding: '20px 15px', borderBottom: '1px solid #222' }}>
+        <button onClick={() => router.push('/my')} style={{ background: 'none', border: 'none', color: '#D4AF37', cursor: 'pointer', marginRight: '15px' }}>
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
         </button>
-        <h1 style={{ fontFamily: 'Playfair Display, serif', fontSize: '1.5rem', margin: 0, color: '#00bfff', flex: 1, textAlign: 'center' }}>
+        <h1 style={{ fontFamily: 'Playfair Display, serif', fontSize: '1.5rem', margin: 0, color: '#D4AF37', flex: 1, textAlign: 'center' }}>
           Invite & Earn
         </h1>
         <div style={{ width: '24px' }}></div>
@@ -97,21 +97,21 @@ export default function InvitePage() {
       <div style={{ padding: '20px 15px' }}>
         
         {/* Rules Notice */}
-        <div style={{ border: '1px solid #00bfff', borderRadius: '12px', padding: '15px', textAlign: 'center', backgroundColor: 'rgba(0, 191, 255, 0.05)', marginBottom: '20px' }}>
+        <div style={{ border: '1px solid #D4AF37', borderRadius: '12px', padding: '15px', textAlign: 'center', backgroundColor: 'rgba(212, 175, 55, 0.05)', marginBottom: '20px' }}>
           <p style={{ margin: 0, fontFamily: 'Playfair Display, serif', fontSize: '0.9rem', lineHeight: '1.5', color: '#ccc' }}>
-            Earn <strong style={{color: '#00bfff'}}>12% commission</strong> on every deposit made by your direct Level 1 referrals.
+            Earn <strong style={{color: '#D4AF37'}}>12% commission</strong> on every deposit made by your direct Level 1 referrals.
           </p>
         </div>
 
         {/* Stats Grid */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px', marginBottom: '20px' }}>
-          <div style={{ background: '#0a0a0a', border: '1px solid #333', borderRadius: '12px', padding: '15px', textAlign: 'center' }}>
+          <div style={{ background: '#111', border: '1px solid #222', borderRadius: '12px', padding: '15px', textAlign: 'center' }}>
             <p style={{ margin: '0 0 5px 0', fontSize: '0.8rem', color: '#888' }}>Total Invites</p>
             <h3 style={{ margin: 0, fontSize: '1.5rem', color: '#fff' }}>{referrals.length}</h3>
           </div>
-          <div style={{ background: '#0a0a0a', border: '1px solid #333', borderRadius: '12px', padding: '15px', textAlign: 'center' }}>
+          <div style={{ background: '#111', border: '1px solid #222', borderRadius: '12px', padding: '15px', textAlign: 'center' }}>
             <p style={{ margin: '0 0 5px 0', fontSize: '0.8rem', color: '#888' }}>Commission Earned</p>
-            <h3 style={{ margin: 0, fontSize: '1.5rem', color: '#00bfff' }}>{totalCommission.toLocaleString()} UGX</h3>
+            <h3 style={{ margin: 0, fontSize: '1.5rem', color: '#D4AF37' }}>{totalCommission.toLocaleString()} UGX</h3>
           </div>
         </div>
 
@@ -123,11 +123,11 @@ export default function InvitePage() {
               type="text" 
               value={referralCode || 'Loading...'} 
               readOnly 
-              style={{ flex: 1, padding: '15px', backgroundColor: '#121c2d', border: '1px solid #333', borderRadius: '8px', color: '#fff', fontSize: '1rem', fontWeight: 'bold', outline: 'none' }}
+              style={{ flex: 1, padding: '15px', backgroundColor: '#111', border: '1px solid #333', borderRadius: '8px', color: '#fff', fontSize: '1rem', fontWeight: 'bold', outline: 'none' }}
             />
             <button 
               onClick={() => copyToClipboard(referralCode, 'code')}
-              style={{ padding: '0 20px', backgroundColor: '#00bfff', color: '#000', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer' }}
+              style={{ padding: '0 20px', backgroundColor: '#D4AF37', color: '#000', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer' }}
             >
               {copiedCode ? 'Copied!' : 'Copy'}
             </button>
@@ -142,11 +142,11 @@ export default function InvitePage() {
               type="text" 
               value={referralLink || 'Loading...'} 
               readOnly 
-              style={{ flex: 1, padding: '15px', backgroundColor: '#121c2d', border: '1px solid #333', borderRadius: '8px', color: '#fff', fontSize: '0.9rem', outline: 'none' }}
+              style={{ flex: 1, padding: '15px', backgroundColor: '#111', border: '1px solid #333', borderRadius: '8px', color: '#fff', fontSize: '0.9rem', outline: 'none' }}
             />
             <button 
               onClick={() => copyToClipboard(referralLink, 'link')}
-              style={{ padding: '0 20px', backgroundColor: '#00bfff', color: '#000', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer' }}
+              style={{ padding: '0 20px', backgroundColor: '#D4AF37', color: '#000', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer' }}
             >
               {copiedLink ? 'Copied!' : 'Copy'}
             </button>
@@ -154,22 +154,22 @@ export default function InvitePage() {
         </div>
 
         {/* Referrals List */}
-        <h3 style={{ fontFamily: 'Playfair Display, serif', color: '#00bfff', fontSize: '1.2rem', marginBottom: '15px' }}>My Direct Referrals</h3>
+        <h3 style={{ fontFamily: 'Playfair Display, serif', color: '#D4AF37', fontSize: '1.2rem', marginBottom: '15px' }}>My Direct Referrals</h3>
         
         {referrals.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: '30px', backgroundColor: '#0a0a0a', borderRadius: '12px', border: '1px dashed #333' }}>
+          <div style={{ textAlign: 'center', padding: '30px', backgroundColor: '#111', borderRadius: '12px', border: '1px dashed #333' }}>
             <p style={{ color: '#888', margin: 0 }}>You haven't invited anyone yet.</p>
           </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
             {referrals.map((ref, index) => (
-              <div key={index} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#0a0a0a', border: '1px solid #333', padding: '15px', borderRadius: '10px' }}>
+              <div key={index} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#111', border: '1px solid #222', padding: '15px', borderRadius: '10px' }}>
                 <div>
                   <p style={{ margin: '0 0 5px 0', fontWeight: 'bold', color: '#fff' }}>{ref.full_name || 'Anonymous User'}</p>
                   <p style={{ margin: 0, fontSize: '0.8rem', color: '#888' }}>{ref.phone}</p>
                 </div>
                 <div style={{ textAlign: 'right' }}>
-                  <p style={{ margin: 0, fontSize: '0.75rem', color: '#00bfff' }}>
+                  <p style={{ margin: 0, fontSize: '0.75rem', color: '#D4AF37' }}>
                     {new Date(ref.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                   </p>
                 </div>
@@ -181,4 +181,4 @@ export default function InvitePage() {
       </div>
     </div>
   );
-                       }
+}
