@@ -35,16 +35,14 @@ export async function POST(request: Request) {
       
       const status = transaction.transactionStatus || transaction.status;
       
-      // THIS IS THE FIX: 
-      // We look for transactionExternalReference first (which is your frontend UUID)
-      // If it's missing, we fall back to the TavuPay reference.
-      const searchReference = transaction.transactionExternalReference || transaction.transactionSystemId || transaction.reference;
+      // Look for TavuPay's reference
+      const searchReference = transaction.transactionSystemId || transaction.reference;
       
       const supabase = await createClient();
 
       if (status === 'SUCCEEDED' || status === 'successful' || body.event === 'payment.successful') {
         
-        // 1. Find the pending deposit using the external reference (UUID)
+        // 1. Find the pending deposit using TavuPay's reference
         const { data: deposit, error: fetchError } = await supabase
           .from('pending_deposits')
           .select('user_id, amount_usd, status')
