@@ -4,6 +4,21 @@ import { useState, useEffect } from 'react';
 import { createClient } from '@/utils/supabase/client';
 import { useRouter } from 'next/navigation';
 
+// Helper function to calculate purchase bonus based on price
+const getPurchaseBonus = (price: number) => {
+  if (price >= 20000 && price <= 35000) return 3000;
+  if (price >= 40000 && price <= 60000) return 5000; // Covers 40k-50k and up to 60k
+  if (price >= 70000 && price <= 80000) return 8000; // Covers 70k-75k
+  if (price >= 90000 && price <= 130000) return 13000; // Covers 100k
+  if (price >= 140000 && price <= 170000) return 16000; // Covers 150k
+  if (price >= 180000 && price <= 270000) return 23000; // Covers 200k-250k
+  if (price >= 300000 && price <= 400000) return 30000; // Covers 350k
+  if (price >= 450000 && price <= 550000) return 50000; // Covers 500k
+  if (price >= 600000 && price <= 800000) return 70000; // Covers 700k
+  if (price >= 900000 && price <= 1100000) return 100000; // Covers 1M
+  return 0; // Default if no match
+};
+
 export default function Perfumes() {
   const supabase = createClient();
   const router = useRouter();
@@ -107,14 +122,42 @@ export default function Perfumes() {
           cycle_days: perfume.cycle,
           status: 'active',
           plan_type: perfume.plan_type,
-          is_granted: false, 
+          is_granted: false, // It's a real purchase
           last_payout: new Date().toISOString()
         });
 
       if (purchaseError) throw purchaseError;
 
+      // 🚨 PURCHASE BONUS LOGIC
+      if (isFirstPurchase) {
+        const bonusAmount = getPurchaseBonus(Number(perfume.price));
+        
+        if (bonusAmount > 0) {
+          // Add bonus to user's balance
+          const newBalanceWithBonus = Number(updates.balance_usd || depositBalance) + bonusAmount;
+          await supabase
+            .from('profiles')
+            .update({ balance_usd: newBalanceWithBonus })
+            .eq('id', user.id);
+
+          // Log the bonus transaction
+          await supabase.from('transactions').insert({
+            user_id: user.id,
+            type: 'BONUS',
+            amount_usd: bonusAmount,
+            status: 'completed'
+          });
+
+          setDepositBalance(newBalanceWithBonus);
+          alert(`Successfully ${actionText === 'buy' ? 'activated' : 'locked in'} ${perfume.name}!\n\nYou received a First Purchase Bonus of ${bonusAmount.toLocaleString()} UGX!`);
+        } else {
+          alert(`Successfully ${actionText === 'buy' ? 'activated' : 'locked in'} ${perfume.name}!`);
+        }
+      } else {
+        alert(`Successfully ${actionText === 'buy' ? 'activated' : 'locked in'} ${perfume.name}!`);
+      }
+
       setUserPerfumes(prev => [...prev, { perfume_name: perfume.name, status: 'active' }]);
-      alert(`Successfully ${actionText === 'buy' ? 'activated' : 'locked in'} ${perfume.name}!`);
 
     } catch (error: any) {
       alert("Error processing request: " + error.message);
