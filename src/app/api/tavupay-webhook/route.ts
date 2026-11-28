@@ -1,10 +1,9 @@
 import { NextResponse } from 'next/server';
 import crypto from 'crypto';
-import { createClient } from '@/utils/supabase/server'; // Make sure this path matches your project
+import { createClient } from '@/utils/supabase/server';
 
 export async function POST(request: Request) {
   try {
-    // 1. Get raw body and signature header
     const rawBody = await request.text();
     const signature = request.headers.get('X-TAVUPAY-Signature');
 
@@ -12,7 +11,6 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Missing signature' }, { status: 401 });
     }
 
-    // 2. Verify HMAC-SHA256 Signature
     const secret = process.env.TAVUPAY_API_SECRET!;
     const expectedSignature = crypto
       .createHmac('sha256', secret)
@@ -24,54 +22,80 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Invalid signature' }, { status: 401 });
     }
 
-    // 3. Parse the validated body
     const body = JSON.parse(rawBody);
-    
-    // 4. Handle the event
     console.log('TavuPay Webhook Received:', body.event);
 
     if (body.event === 'collection.success' || body.event === 'collection.failed') {
       const transaction = body.data;
+      const status = transaction.transactionStatus;
+      const tavuReference = transaction.transactionSystemId;
       
-      const status = transaction.transactionStatus; // "SUCCEEDED" or "FAILED"
-      const tavuReference = transaction.transactionSystemId; // EPY211001492
-      
-      // Initialize Supabase (server-side)
       const supabase = await createClient();
 
       if (status === 'SUCCEEDED') {
-        // Step A: Update the pending_deposits table to 'success'
-        const { error: depositError } = await supabase
+        
+        // 1. Find the pending deposit
+        const { data: deposit, error: fetchError } = await supabase
+          .from('pending_deposits')
+          .select('user_id, amount_usd, status')
+          .eq('txid', tavuReference)
+          .single();
+
+        if (fetchError || !deposit) {
+          console.error('Deposit not found for reference:', tavuReference, fetchError);
+          return new NextResponse(null, { status: 200 });
+        }
+
+        // Prevent double crediting if webhook fires twice
+        if (deposit.status === 'success') {
+            console.log('Deposit already processed.');
+            return new NextResponse(null, { status: 200 });
+        }
+
+        // 2. Update the pending_deposits table to 'success'
+        await supabase
           .from('pending_deposits')
           .update({ status: 'success' })
           .eq('txid', tavuReference);
 
-        if (depositError) {
-          console.error('Failed to update pending deposit:', depositError);
+        // 3. Fetch current profile balances to calculate the new totals
+        const { data: profile, error: profileError } = await supabase
+          .from('profiles')
+          .select('balance_usd, total_deposited')
+          .eq('id', deposit.user_id)
+          .single();
+
+        if (profile && !profileError) {
+          const currentBalance = Number(profile.balance_usd) || 0;
+          const currentTotalDeposited = Number(profile.total_deposited) || 0;
+          const depositAmount = Number(deposit.amount_usd) || 0;
+
+          // 4. Update the user's profile with the new balances
+          const { error: updateError } = await supabase
+            .from('profiles')
+            .update({ 
+              balance_usd: currentBalance + depositAmount,
+              total_deposited: currentTotalDeposited + depositAmount
+            })
+            .eq('id', deposit.user_id);
+            
+          if (updateError) {
+            console.error('Failed to update user profile balance:', updateError);
+          } else {
+            console.log(`Successfully credited ${depositAmount} to user ${deposit.user_id}`);
+          }
         }
 
-        // Step B: You need to credit the user's balance here.
-        // This depends on your DB structure. Example:
-        // 1. Fetch the deposit to get the user_id and amount
-        // 2. Add the amount to the user's profile/wallet table
-        
-        console.log(`Payment ${tavuReference} succeeded for ${transaction.amount} UGX`);
       } else if (status === 'FAILED') {
-        // Update the pending_deposits table to 'failed'
-        const { error: failError } = await supabase
+        await supabase
           .from('pending_deposits')
           .update({ status: 'failed' })
           .eq('txid', tavuReference);
-
-        if (failError) {
-          console.error('Failed to update failed deposit:', failError);
-        }
         
         console.log(`Payment ${tavuReference} failed`);
       }
     }
 
-    // 5. Acknowledge receipt (TavuPay recommends 202)
     return new NextResponse(null, { status: 202 });
 
   } catch (error) {
