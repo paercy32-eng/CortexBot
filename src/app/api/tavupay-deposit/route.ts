@@ -13,6 +13,11 @@ export async function POST(request: Request) {
       return NextResponse.json({ ok: false, error: 'Minimum amount is 500 UGX' }, { status: 400 });
     }
 
+    // 🚨 CALCULATE TAVUPAY FEE (2%) TO CHARGE THE USER
+    const baseAmount = Number(amount);
+    const fee = baseAmount * 0.02;
+    const totalToCharge = baseAmount + fee; // e.g., 20000 + 400 = 20400
+
     const response = await fetch('https://api.tavupay.lat/v1/payments', {
       method: 'POST',
       headers: {
@@ -23,7 +28,7 @@ export async function POST(request: Request) {
       body: JSON.stringify({
         type: 'collection',
         phone: phone,
-        amount: Number(amount),
+        amount: totalToCharge, // Charge the user the total (Amount + Fee)
         idempotencyKey: orderId || `order-${Date.now()}`,
         description: description || 'Wallet Deposit',
       }),
@@ -35,7 +40,6 @@ export async function POST(request: Request) {
       return NextResponse.json({ ok: false, error: data.error || data.message || 'Failed' }, { status: response.status });
     }
 
-    // We return the data, which includes TavuPay's 'reference'
     return NextResponse.json(data);
 
   } catch (error) {
