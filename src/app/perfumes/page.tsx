@@ -181,59 +181,74 @@ export default function Perfumes() {
         ))}
       </div>
 
-      {/* Perfume Grid (2 Columns) */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
+      {/* Perfume List (Horizontal Layout) */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
         {filteredPerfumes.map((perfume: any) => {
           const ownedPerfume = userPerfumes.find(r => r.perfume_name === perfume.name && r.status === 'active');
           const isOwned = !!ownedPerfume;
 
           return (
-            <div key={perfume.id} style={{ background: '#111', border: '1px solid #222', borderRadius: '16px', padding: '10px', display: 'flex', flexDirection: 'column', position: 'relative' }}>
+            <div key={perfume.id} style={{ background: '#111', border: '1px solid #222', borderRadius: '16px', overflow: 'hidden' }}>
               
-              <div style={{ height: '140px', background: '#000', borderRadius: '10px', marginBottom: '10px', overflow: 'hidden', position: 'relative' }}>
-                <img src={perfume.image} alt={perfume.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                <div style={{ position: 'absolute', top: '8px', right: '8px', background: 'rgba(0,0,0,0.7)', border: '1px solid #D4AF37', color: '#D4AF37', padding: '2px 8px', borderRadius: '10px', fontSize: '0.6rem', fontWeight: 'bold', textTransform: 'uppercase' }}>
-                  {perfume.category}
+              {/* Top Section: Image & Details */}
+              <div style={{ display: 'flex', padding: '15px', gap: '15px' }}>
+                <div style={{ width: '100px', height: '120px', flexShrink: 0, background: '#000', borderRadius: '10px', overflow: 'hidden', position: 'relative' }}>
+                  <img src={perfume.image} alt={perfume.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                 </div>
-              </div>
-              
-              <h4 style={{ margin: '0 0 2px 0', fontSize: '1rem', color: '#fff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{perfume.name}</h4>
-              <p style={{ fontSize: '0.7rem', color: '#888', margin: '0 0 10px 0' }}>{perfume.brand}</p>
-              
-              {/* Price & Yield Info */}
-              <div style={{ marginTop: 'auto', background: '#0a0a0a', borderRadius: '8px', padding: '8px', marginBottom: '10px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
-                  <span style={{ fontSize: '0.65rem', color: '#666' }}>Price</span>
-                  <span style={{ fontSize: '0.75rem', color: '#fff', fontWeight: 'bold' }}>{Number(perfume.price).toLocaleString()}</span>
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
-                  <span style={{ fontSize: '0.65rem', color: '#666' }}>Daily</span>
-                  <span style={{ fontSize: '0.75rem', color: '#D4AF37', fontWeight: 'bold' }}>{Number(perfume.daily).toLocaleString()}</span>
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span style={{ fontSize: '0.65rem', color: '#666' }}>Cycle</span>
-                  <span style={{ fontSize: '0.75rem', color: '#fff', fontWeight: 'bold' }}>{perfume.cycle} Days</span>
+                
+                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+                  <div style={{ marginBottom: '5px' }}>
+                    <span style={{ fontSize: '0.65rem', background: 'rgba(212, 175, 55, 0.1)', color: '#D4AF37', padding: '3px 8px', borderRadius: '10px', textTransform: 'uppercase', fontWeight: 'bold' }}>
+                      {perfume.category}
+                    </span>
+                  </div>
+                  <h4 style={{ margin: '0 0 3px 0', fontSize: '1.2rem', color: '#fff', fontFamily: 'Playfair Display, serif' }}>{perfume.name}</h4>
+                  <p style={{ fontSize: '0.8rem', color: '#888', margin: '0 0 10px 0' }}>{perfume.brand}</p>
+                  
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                    <span style={{ fontSize: '0.75rem', color: '#666' }}>Daily Yield:</span>
+                    <span style={{ fontSize: '0.9rem', color: '#D4AF37', fontWeight: 'bold' }}>{Number(perfume.daily).toLocaleString()} UGX</span>
+                  </div>
                 </div>
               </div>
 
-              <button 
-                onClick={() => handleBuyPerfume(perfume)}
-                disabled={processingId === perfume.id || isOwned}
-                style={{ 
-                  width: '100%', background: isOwned ? '#222' : '#D4AF37', 
-                  color: isOwned ? '#D4AF37' : '#000', fontWeight: 'bold', 
-                  padding: '10px', borderRadius: '8px', border: isOwned ? '1px solid #D4AF37' : 'none', 
-                  cursor: (processingId === perfume.id || isOwned) ? 'not-allowed' : 'pointer', 
-                  fontSize: '0.85rem',
-                  transition: '0.2s'
-                }}
-              >
-                {processingId === perfume.id 
-                  ? '...' 
-                  : isOwned 
-                    ? 'Owned' 
-                    : 'Buy'}
-              </button>
+              {/* Bottom Section: Stats Grid & Button */}
+              <div style={{ background: '#0a0a0a', padding: '15px', borderTop: '1px solid #222' }}>
+                
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '10px', marginBottom: '15px', textAlign: 'center' }}>
+                  <div>
+                    <div style={{ fontSize: '0.65rem', color: '#666', textTransform: 'uppercase' }}>Price</div>
+                    <div style={{ fontSize: '0.9rem', color: '#fff', fontWeight: 'bold' }}>{Number(perfume.price).toLocaleString()}</div>
+                  </div>
+                  <div>
+                    <div style={{ fontSize: '0.65rem', color: '#666', textTransform: 'uppercase' }}>Cycle</div>
+                    <div style={{ fontSize: '0.9rem', color: '#fff', fontWeight: 'bold' }}>{perfume.cycle} Days</div>
+                  </div>
+                  <div>
+                    <div style={{ fontSize: '0.65rem', color: '#666', textTransform: 'uppercase' }}>Total</div>
+                    <div style={{ fontSize: '0.9rem', color: '#D4AF37', fontWeight: 'bold' }}>{Number(perfume.total).toLocaleString()}</div>
+                  </div>
+                </div>
+
+                <button 
+                  onClick={() => handleBuyPerfume(perfume)}
+                  disabled={processingId === perfume.id || isOwned}
+                  style={{ 
+                    width: '100%', background: isOwned ? '#222' : '#D4AF37', 
+                    color: isOwned ? '#D4AF37' : '#000', fontWeight: 'bold', 
+                    padding: '12px', borderRadius: '8px', border: isOwned ? '1px solid #D4AF37' : 'none', 
+                    cursor: (processingId === perfume.id || isOwned) ? 'not-allowed' : 'pointer', 
+                    fontSize: '1rem',
+                    transition: '0.2s'
+                  }}
+                >
+                  {processingId === perfume.id 
+                    ? 'Processing...' 
+                    : isOwned 
+                      ? 'Active / Owned' 
+                      : 'Buy Now'}
+                </button>
+              </div>
             </div>
           );
         })}
