@@ -94,17 +94,17 @@ export default function SettingsPage() {
     }
   };
 
-  if (loading) return <div style={{ color: 'white', padding: '20px', textAlign: 'center' }}>Loading...</div>;
+  if (loading) return <div style={{ color: '#D4AF37', padding: '20px', textAlign: 'center', backgroundColor: '#0a0a0a', minHeight: '100vh' }}>Loading...</div>;
 
   return (
-    <div style={{ backgroundColor: '#000', minHeight: '100vh', color: 'white', paddingBottom: '20px' }}>
+    <div style={{ backgroundColor: '#0a0a0a', minHeight: '100vh', color: 'white', paddingBottom: '20px' }}>
       
       {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'center', padding: '20px 15px', borderBottom: '1px solid #333' }}>
-        <button onClick={() => router.push('/my')} style={{ background: 'none', border: 'none', color: '#00bfff', cursor: 'pointer', marginRight: '15px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', padding: '20px 15px', borderBottom: '1px solid #222' }}>
+        <button onClick={() => router.push('/my')} style={{ background: 'none', border: 'none', color: '#D4AF37', cursor: 'pointer', marginRight: '15px' }}>
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
         </button>
-        <h1 style={{ fontFamily: 'Playfair Display, serif', fontSize: '1.5rem', margin: 0, color: '#00bfff', flex: 1, textAlign: 'center' }}>
+        <h1 style={{ fontFamily: 'Playfair Display, serif', fontSize: '1.5rem', margin: 0, color: '#D4AF37', flex: 1, textAlign: 'center' }}>
           Settings
         </h1>
         <div style={{ width: '24px' }}></div>
@@ -113,8 +113,8 @@ export default function SettingsPage() {
       <div style={{ padding: '20px 15px', display: 'flex', flexDirection: 'column', gap: '30px' }}>
         
         {/* Update Password Section */}
-        <div style={{ backgroundColor: '#0a0a0a', border: '1px solid #333', borderRadius: '12px', padding: '20px' }}>
-          <h2 style={{ fontFamily: 'Playfair Display, serif', fontSize: '1.2rem', color: '#00bfff', marginBottom: '20px', marginTop: 0 }}>Update Password</h2>
+        <div style={{ backgroundColor: '#111', border: '1px solid #222', borderRadius: '12px', padding: '20px' }}>
+          <h2 style={{ fontFamily: 'Playfair Display, serif', fontSize: '1.2rem', color: '#D4AF37', marginBottom: '20px', marginTop: 0 }}>Update Password</h2>
           
           <form onSubmit={handleUpdatePassword} style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
             <div style={{ position: 'relative' }}>
@@ -123,7 +123,7 @@ export default function SettingsPage() {
               </div>
               <input 
                 type="password" placeholder="New Password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} required
-                style={{ width: '100%', padding: '15px 15px 15px 45px', backgroundColor: '#121c2d', border: '1px solid #00bfff', borderRadius: '8px', color: 'white', fontSize: '0.95rem', outline: 'none' }} 
+                style={{ width: '100%', padding: '15px 15px 15px 45px', backgroundColor: '#0a0a0a', border: '1px solid #333', borderRadius: '8px', color: 'white', fontSize: '0.95rem', outline: 'none' }} 
               />
             </div>
             
@@ -133,23 +133,23 @@ export default function SettingsPage() {
               </div>
               <input 
                 type="password" placeholder="Confirm New Password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} required
-                style={{ width: '100%', padding: '15px 15px 15px 45px', backgroundColor: '#121c2d', border: '1px solid #00bfff', borderRadius: '8px', color: 'white', fontSize: '0.95rem', outline: 'none' }} 
+                style={{ width: '100%', padding: '15px 15px 15px 45px', backgroundColor: '#0a0a0a', border: '1px solid #333', borderRadius: '8px', color: 'white', fontSize: '0.95rem', outline: 'none' }} 
               />
             </div>
 
             {passwordMsg.text && (
-              <p style={{ margin: 0, fontSize: '0.85rem', color: passwordMsg.isError ? '#ff4444' : '#00ff00' }}>{passwordMsg.text}</p>
+              <p style={{ margin: 0, fontSize: '0.85rem', color: passwordMsg.isError ? '#ff4444' : '#D4AF37' }}>{passwordMsg.text}</p>
             )}
 
-            <button type="submit" disabled={savingPassword} style={{ padding: '12px', backgroundColor: '#00bfff', color: '#000', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: savingPassword ? 'not-allowed' : 'pointer', opacity: savingPassword ? 0.7 : 1 }}>
+            <button type="submit" disabled={savingPassword} style={{ padding: '12px', backgroundColor: '#D4AF37', color: '#000', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: savingPassword ? 'not-allowed' : 'pointer', opacity: savingPassword ? 0.7 : 1 }}>
               {savingPassword ? 'Updating...' : 'Update Password'}
             </button>
           </form>
         </div>
 
         {/* Update Card Details Section */}
-        <div style={{ backgroundColor: '#0a0a0a', border: '1px solid #333', borderRadius: '12px', padding: '20px' }}>
-          <h2 style={{ fontFamily: 'Playfair Display, serif', fontSize: '1.2rem', color: '#00bfff', marginBottom: '20px', marginTop: 0 }}>Card Details</h2>
+        <div style={{ backgroundColor: '#111', border: '1px solid #222', borderRadius: '12px', padding: '20px' }}>
+          <h2 style={{ fontFamily: 'Playfair Display, serif', fontSize: '1.2rem', color: '#D4AF37', marginBottom: '20px', marginTop: 0 }}>Card Details</h2>
           
           <form onSubmit={handleUpdateCard} style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
             <div style={{ position: 'relative' }}>
@@ -158,7 +158,7 @@ export default function SettingsPage() {
               </div>
               <input 
                 type="text" placeholder="Registered Full Name" value={boundName} onChange={(e) => setBoundName(e.target.value)} required
-                style={{ width: '100%', padding: '15px 15px 15px 45px', backgroundColor: '#121c2d', border: '1px solid #00bfff', borderRadius: '8px', color: 'white', fontSize: '0.95rem', outline: 'none' }} 
+                style={{ width: '100%', padding: '15px 15px 15px 45px', backgroundColor: '#0a0a0a', border: '1px solid #333', borderRadius: '8px', color: 'white', fontSize: '0.95rem', outline: 'none' }} 
               />
             </div>
             
@@ -168,15 +168,15 @@ export default function SettingsPage() {
               </div>
               <input 
                 type="tel" placeholder="Mobile Money Number" value={boundPhone} onChange={(e) => setBoundPhone(e.target.value)} required
-                style={{ width: '100%', padding: '15px 15px 15px 45px', backgroundColor: '#121c2d', border: '1px solid #00bfff', borderRadius: '8px', color: 'white', fontSize: '0.95rem', outline: 'none' }} 
+                style={{ width: '100%', padding: '15px 15px 15px 45px', backgroundColor: '#0a0a0a', border: '1px solid #333', borderRadius: '8px', color: 'white', fontSize: '0.95rem', outline: 'none' }} 
               />
             </div>
 
             {cardMsg.text && (
-              <p style={{ margin: 0, fontSize: '0.85rem', color: cardMsg.isError ? '#ff4444' : '#00ff00' }}>{cardMsg.text}</p>
+              <p style={{ margin: 0, fontSize: '0.85rem', color: cardMsg.isError ? '#ff4444' : '#D4AF37' }}>{cardMsg.text}</p>
             )}
 
-            <button type="submit" disabled={savingCard} style={{ padding: '12px', backgroundColor: '#00bfff', color: '#000', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: savingCard ? 'not-allowed' : 'pointer', opacity: savingCard ? 0.7 : 1 }}>
+            <button type="submit" disabled={savingCard} style={{ padding: '12px', backgroundColor: '#D4AF37', color: '#000', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: savingCard ? 'not-allowed' : 'pointer', opacity: savingCard ? 0.7 : 1 }}>
               {savingCard ? 'Saving...' : 'Update Card Details'}
             </button>
           </form>
