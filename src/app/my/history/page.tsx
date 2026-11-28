@@ -13,6 +13,9 @@ export default function HistoryPage() {
   const router = useRouter();
 
   useEffect(() => {
+    // 🚨 FORCE FRESH DATA: Clears the Next.js cache so it doesn't show old "Pending" statuses
+    router.refresh();
+
     const fetchHistory = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
@@ -54,20 +57,30 @@ export default function HistoryPage() {
         }));
       }
 
-      // 3. Fetch Commissions / Salaries (From transactions table)
+      // 3. Fetch Commissions / Salaries / Bonuses (From transactions table)
       const { data: transactions } = await supabase
         .from('transactions')
         .select('amount_usd, type, status, created_at')
         .eq('user_id', user.id);
       
       if (transactions) {
-        transactions.forEach(t => combinedHistory.push({
-          type: t.type === 'COMMISSION' ? 'commission' : 'salary',
-          title: t.type === 'COMMISSION' ? 'Referral Commission' : 'Fragrance Yield',
-          amount: Number(t.amount_usd),
-          status: t.status,
-          date: new Date(t.created_at)
-        }));
+        transactions.forEach(t => {
+          let title = 'Transaction';
+          let type = 'salary';
+          
+          if (t.type === 'COMMISSION') { title = 'Referral Commission'; type = 'commission'; }
+          else if (t.type === 'DEPOSIT') { title = 'Deposit'; type = 'deposit'; }
+          else if (t.type === 'BONUS') { title = 'Welcome/Buy Bonus'; type = 'bonus'; }
+          else if (t.type === 'YIELD' || t.type === 'SALARY') { title = 'Fragrance Yield'; type = 'salary'; }
+
+          combinedHistory.push({
+            type: type,
+            title: title,
+            amount: Number(t.amount_usd),
+            status: t.status,
+            date: new Date(t.created_at)
+          });
+        });
       }
 
       // 4. Fetch Raffle Wins
@@ -118,7 +131,7 @@ export default function HistoryPage() {
 
       {/* Tabs */}
       <div style={{ display: 'flex', gap: '10px', padding: '15px', overflowX: 'auto', borderBottom: '1px solid #222', scrollbarWidth: 'none' }}>
-        {['all', 'deposit', 'withdrawal', 'commission', 'raffle'].map(tab => (
+        {['all', 'deposit', 'withdrawal', 'commission', 'bonus', 'raffle'].map(tab => (
           <button 
             key={tab}
             onClick={() => setActiveTab(tab)}
@@ -158,12 +171,13 @@ export default function HistoryPage() {
                   <div style={{ 
                     width: '40px', height: '40px', borderRadius: '50%', 
                     display: 'flex', justifyContent: 'center', alignItems: 'center',
-                    backgroundColor: item.type === 'deposit' ? 'rgba(212, 175, 55, 0.1)' : item.type === 'withdrawal' ? 'rgba(255,0,0,0.1)' : item.type === 'raffle' ? 'rgba(255,165,0,0.1)' : 'rgba(212, 175, 55, 0.1)'
+                    backgroundColor: item.type === 'deposit' ? 'rgba(212, 175, 55, 0.1)' : item.type === 'withdrawal' ? 'rgba(255,0,0,0.1)' : item.type === 'raffle' ? 'rgba(255,165,0,0.1)' : item.type === 'bonus' ? 'rgba(0,255,0,0.1)' : 'rgba(212, 175, 55, 0.1)'
                   }}>
                     {item.type === 'deposit' && <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#D4AF37" strokeWidth="2"><path d="M12 5v14M5 12l7 7 7-7"/></svg>}
                     {item.type === 'withdrawal' && <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#ff4444" strokeWidth="2"><path d="M12 19V5M5 12l7-7 7 7"/></svg>}
                     {item.type === 'commission' && <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#D4AF37" strokeWidth="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>}
                     {item.type === 'salary' && <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#D4AF37" strokeWidth="2"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>}
+                    {item.type === 'bonus' && <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#00ff00" strokeWidth="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>}
                     {item.type === 'raffle' && <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#ffa500" strokeWidth="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>}
                   </div>
                   
@@ -177,7 +191,7 @@ export default function HistoryPage() {
 
                 <div style={{ textAlign: 'right' }}>
                   {item.amount > 0 && (
-                    <p style={{ margin: '0 0 5px 0', fontSize: '1rem', fontWeight: 'bold', color: item.type === 'withdrawal' ? '#ff4444' : '#D4AF37' }}>
+                    <p style={{ margin: '0 0 5px 0', fontSize: '1rem', fontWeight: 'bold', color: item.type === 'withdrawal' ? '#ff4444' : (item.type === 'bonus' ? '#00ff00' : '#D4AF37') }}>
                       {item.type === 'withdrawal' ? '-' : '+'}{item.amount.toLocaleString()} UGX
                     </p>
                   )}
