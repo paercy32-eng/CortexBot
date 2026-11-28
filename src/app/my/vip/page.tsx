@@ -29,15 +29,15 @@ export default function VipPage() {
         return;
       }
 
-      // 1. Fetch direct referrals and check if they have PURCHASED robots (is_granted = false)
+      // 1. Fetch direct referrals and check if they have PURCHASED perfumes (is_granted = false)
       const { data: referrals } = await supabase
         .from('profiles')
         .select(`
           id,
-          user_robots!inner(is_granted)
+          user_perfumes!inner(is_granted)
         `)
         .eq('referred_by', user.id)
-        .eq('user_robots.is_granted', false); // 🚨 ONLY COUNT REAL PURCHASES
+        .eq('user_perfumes.is_granted', false); // 🚨 ONLY COUNT REAL PURCHASES
 
       const activeCount = referrals ? referrals.length : 0;
       setActiveInvites(activeCount);
@@ -67,18 +67,18 @@ export default function VipPage() {
     fetchVipData();
   }, [router, supabase]);
 
-  if (loading) return <div style={{ color: 'white', padding: '20px', textAlign: 'center' }}>Loading...</div>;
+  if (loading) return <div style={{ color: '#D4AF37', padding: '20px', textAlign: 'center', backgroundColor: '#0a0a0a', minHeight: '100vh' }}>Loading...</div>;
 
   return (
-    <div style={{ backgroundColor: '#000', minHeight: '100vh', color: 'white', paddingBottom: '20px' }}>
+    <div style={{ backgroundColor: '#0a0a0a', minHeight: '100vh', color: 'white', paddingBottom: '20px' }}>
       
       {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'center', padding: '20px 15px', borderBottom: '1px solid #333' }}>
-        <button onClick={() => router.push('/my')} style={{ background: 'none', border: 'none', color: '#00bfff', cursor: 'pointer', marginRight: '15px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', padding: '20px 15px', borderBottom: '1px solid #222' }}>
+        <button onClick={() => router.push('/my')} style={{ background: 'none', border: 'none', color: '#D4AF37', cursor: 'pointer', marginRight: '15px' }}>
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
         </button>
-        <h1 style={{ fontFamily: 'Playfair Display, serif', fontSize: '1.5rem', margin: 0, color: '#00bfff', flex: 1, textAlign: 'center' }}>
-          VIP Program
+        <h1 style={{ fontFamily: 'Playfair Display, serif', fontSize: '1.5rem', margin: 0, color: '#D4AF37', flex: 1, textAlign: 'center' }}>
+          Best Seller Program
         </h1>
         <div style={{ width: '24px' }}></div>
       </div>
@@ -87,31 +87,31 @@ export default function VipPage() {
         
         {/* Current Status Card */}
         <div style={{ 
-          background: 'linear-gradient(135deg, #0a0a0a, #121c2d)', 
-          border: '1px solid #00bfff', 
+          background: 'linear-gradient(135deg, #0a0a0a, #1a1a1a)', 
+          border: '1px solid #D4AF37', 
           borderRadius: '16px', 
           padding: '25px 20px', 
           textAlign: 'center',
-          boxShadow: '0 0 20px rgba(0,191,255,0.1)',
+          boxShadow: '0 0 20px rgba(212, 175, 55, 0.1)',
           marginBottom: '30px'
         }}>
           <p style={{ margin: '0 0 10px 0', fontSize: '0.8rem', color: '#888', textTransform: 'uppercase', letterSpacing: '1px' }}>Your Current Status</p>
           <h2 style={{ margin: '0 0 10px 0', fontSize: '2.5rem', color: '#fff', fontFamily: 'Playfair Display, serif' }}>
-            {currentVip === 0 ? 'No VIP Yet' : `VIP ${currentVip}`}
+            {currentVip === 0 ? 'No Rank Yet' : `Tier ${currentVip}`}
           </h2>
-          <p style={{ margin: 0, fontSize: '1.2rem', color: '#00bfff', fontWeight: 'bold' }}>
+          <p style={{ margin: 0, fontSize: '1.2rem', color: '#D4AF37', fontWeight: 'bold' }}>
             {currentReward.toLocaleString()} UGX <span style={{fontSize: '0.9rem', color: '#888', fontWeight: 'normal'}}>/ day</span>
           </p>
           
           <div style={{ marginTop: '20px', backgroundColor: '#000', borderRadius: '10px', padding: '10px', border: '1px solid #333' }}>
             <p style={{ margin: 0, fontSize: '0.9rem', color: '#ccc' }}>
-              Active Invites: <strong style={{ color: '#00bfff' }}>{activeInvites}</strong>
+              Active Invites: <strong style={{ color: '#D4AF37' }}>{activeInvites}</strong>
             </p>
           </div>
         </div>
 
-        {/* VIP Tiers List */}
-        <h3 style={{ fontFamily: 'Playfair Display, serif', color: '#00bfff', fontSize: '1.2rem', marginBottom: '15px' }}>VIP Levels</h3>
+        {/* Tiers List */}
+        <h3 style={{ fontFamily: 'Playfair Display, serif', color: '#D4AF37', fontSize: '1.2rem', marginBottom: '15px' }}>Best Seller Tiers</h3>
         
         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
           {VIP_TIERS.map((tier) => {
@@ -123,22 +123,22 @@ export default function VipPage() {
                 display: 'flex', 
                 justifyContent: 'space-between', 
                 alignItems: 'center', 
-                backgroundColor: isAchieved ? 'rgba(0, 191, 255, 0.1)' : '#0a0a0a', 
-                border: `1px solid ${isAchieved ? '#00bfff' : '#333'}`, 
+                backgroundColor: isAchieved ? 'rgba(212, 175, 55, 0.1)' : '#111', 
+                border: `1px solid ${isAchieved ? '#D4AF37' : '#222'}`, 
                 padding: '15px', 
                 borderRadius: '12px',
                 opacity: isAchieved || isNext ? 1 : 0.6
               }}>
                 <div>
-                  <h4 style={{ margin: '0 0 5px 0', fontSize: '1.1rem', color: isAchieved ? '#00bfff' : '#fff' }}>
-                    VIP {tier.level}
+                  <h4 style={{ margin: '0 0 5px 0', fontSize: '1.1rem', color: isAchieved ? '#D4AF37' : '#fff' }}>
+                    Tier {tier.level}
                   </h4>
                   <p style={{ margin: 0, fontSize: '0.8rem', color: '#888' }}>
                     Requires {tier.req} active invites
                   </p>
                 </div>
                 <div style={{ textAlign: 'right' }}>
-                  <p style={{ margin: '0 0 5px 0', fontWeight: 'bold', fontSize: '1.1rem', color: isAchieved ? '#00ff00' : '#fff' }}>
+                  <p style={{ margin: '0 0 5px 0', fontWeight: 'bold', fontSize: '1.1rem', color: isAchieved ? '#D4AF37' : '#fff' }}>
                     {tier.reward.toLocaleString()} UGX
                   </p>
                   <p style={{ margin: 0, fontSize: '0.75rem', color: '#888' }}>per day</p>
