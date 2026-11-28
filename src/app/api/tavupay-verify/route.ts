@@ -35,10 +35,17 @@ export async function GET(request: Request) {
 
       if (deposit && deposit.status === 'pending') {
         
-        // 🚨 USE THE ORIGINAL AMOUNT SAVED IN THE DATABASE
         const depositAmount = Number(deposit.amount_usd);
 
-        await supabase.from('pending_deposits').update({ status: 'success' }).eq('txid', reference);
+        // 🚨 CRITICAL: Update status to success FIRST
+        const { error: updateError } = await supabase
+          .from('pending_deposits')
+          .update({ status: 'success' })
+          .eq('txid', reference);
+
+        if (updateError) {
+            console.error("Failed to update deposit status:", updateError);
+        }
 
         const { data: profile } = await supabase
           .from('profiles')
@@ -69,7 +76,9 @@ export async function GET(request: Request) {
     }
 
     return NextResponse.json(data);
+
   } catch (error) {
+    console.error('Verify Route Error:', error);
     return NextResponse.json({ ok: false, error: 'Internal Server Error' }, { status: 500 });
   }
 }
