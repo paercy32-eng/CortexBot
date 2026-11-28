@@ -42,13 +42,13 @@ export default function Register() {
 
     // If registration is successful, create the profile
     if (authData.user) {
-      // Generate a random referral code for this new user
       const newReferralCode = Math.random().toString(36).substring(2, 8).toUpperCase();
 
+      // 🚨 SET WELCOME BONUS TO 1000
       const { error: profileError } = await supabase.from('profiles').insert({
         id: authData.user.id,
         phone: phone,
-        balance_usd: 0,
+        balance_usd: 1000, // Welcome Bonus
         withdrawable_balance: 0,
         vip_level: 0,
         referral_code: newReferralCode,
@@ -59,6 +59,14 @@ export default function Register() {
         setError(profileError.message);
         setLoading(false);
       } else {
+        // 🚨 LOG THE WELCOME BONUS TRANSACTION
+        await supabase.from('transactions').insert({
+          user_id: authData.user.id,
+          type: 'BONUS',
+          amount_usd: 1000,
+          status: 'completed'
+        });
+
         router.push('/');
       }
     }
